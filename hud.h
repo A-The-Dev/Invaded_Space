@@ -27,6 +27,7 @@ private:
     QGraphicsRectItem *xpBarFill;
     QGraphicsTextItem *levelText;
     QGraphicsScene *scene;
+    QPointF smoothPos;
 };
 
 #endif // HUD_H

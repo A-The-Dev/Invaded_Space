@@ -57,9 +57,15 @@ HUD::HUD(QGraphicsScene *scene, QObject *parent) : QObject(parent), scene(scene)
 
 void HUD::updatePosition(QPointF cameraPos)
 {
-    // Position HUD elements relative to camera (top-left corner)
-    qreal leftX = cameraPos.x() - 400 + 20;  // 20px from left edge
-    qreal topY = cameraPos.y() - 300 + 20;   // 20px from top edge
+    // Position HUD elements with minimal wiggle (lerp towards camera position)
+    static QPointF smoothPos = cameraPos;
+    qreal smoothing = 0.45;  // Very slow follow for minimal wiggle
+
+    smoothPos.setX(smoothPos.x() + (cameraPos.x() - smoothPos.x()) * smoothing);
+    smoothPos.setY(smoothPos.y() + (cameraPos.y() - smoothPos.y()) * smoothing);
+
+    qreal leftX = smoothPos.x() - 400 + 20;  // 20px from left edge
+    qreal topY = smoothPos.y() - 300 + 20;   // 20px from top edge
 
     healthBarBackground->setPos(leftX, topY);
     healthBarFill->setPos(leftX, topY);

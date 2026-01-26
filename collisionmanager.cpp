@@ -14,7 +14,7 @@ bool CollisionManager::checkCollision(QGraphicsItem *item1, QGraphicsItem *item2
 bool CollisionManager::isOffScreen(QGraphicsItem *item, QPointF cameraCenter, qreal viewWidth, qreal viewHeight)
 {
     QPointF itemPos = item->pos();
-    qreal margin = 100;  // Extra margin to keep bullets a bit longer
+    qreal margin = 150;  // Extra margin to keep bullets a bit longer
 
     return (itemPos.x() < cameraCenter.x() - viewWidth/2 - margin ||
             itemPos.x() > cameraCenter.x() + viewWidth/2 + margin ||

@@ -50,6 +50,7 @@ C:/Users/antho/OneDrive/Documents/QT\ Projects/Invaded_Space/build/Desktop_Qt_6_
   C:/Qt/6.10.1/mingw_64/include/QtCore/qdatastream.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qdeadlinetimer.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qdebug.h \
+  C:/Qt/6.10.1/mingw_64/include/QtCore/qendian.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qeventloop.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qexceptionhandling.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qflags.h \
@@ -144,10 +145,16 @@ C:/Users/antho/OneDrive/Documents/QT\ Projects/Invaded_Space/build/Desktop_Qt_6_
   C:/Qt/6.10.1/mingw_64/include/QtCore/qxptype_traits.h \
   C:/Qt/6.10.1/mingw_64/include/QtCore/qyieldcpu.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/QKeyEvent \
+  C:/Qt/6.10.1/mingw_64/include/QtGui/QPainter \
   C:/Qt/6.10.1/mingw_64/include/QtGui/QTransform \
+  C:/Qt/6.10.1/mingw_64/include/QtGui/qbrush.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qcolor.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qevent.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qeventpoint.h \
+  C:/Qt/6.10.1/mingw_64/include/QtGui/qfont.h \
+  C:/Qt/6.10.1/mingw_64/include/QtGui/qfontinfo.h \
+  C:/Qt/6.10.1/mingw_64/include/QtGui/qfontmetrics.h \
+  C:/Qt/6.10.1/mingw_64/include/QtGui/qfontvariableaxis.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qguiapplication.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qguiapplication_platform.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qimage.h \
@@ -155,7 +162,9 @@ C:/Users/antho/OneDrive/Documents/QT\ Projects/Invaded_Space/build/Desktop_Qt_6_
   C:/Qt/6.10.1/mingw_64/include/QtGui/qinputmethod.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qkeysequence.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qpaintdevice.h \
+  C:/Qt/6.10.1/mingw_64/include/QtGui/qpainter.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qpainterpath.h \
+  C:/Qt/6.10.1/mingw_64/include/QtGui/qpen.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qpixelformat.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qpixmap.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qpointingdevice.h \
@@ -165,6 +174,7 @@ C:/Users/antho/OneDrive/Documents/QT\ Projects/Invaded_Space/build/Desktop_Qt_6_
   C:/Qt/6.10.1/mingw_64/include/QtGui/qrgba64.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qscreen.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qscreen_platform.h \
+  C:/Qt/6.10.1/mingw_64/include/QtGui/qtextoption.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qtgui-config.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qtguiexports.h \
   C:/Qt/6.10.1/mingw_64/include/QtGui/qtguiglobal.h \

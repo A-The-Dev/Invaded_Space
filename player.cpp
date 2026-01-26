@@ -3,18 +3,23 @@
 #include <QGraphicsScene>
 #include <QtMath>
 #include <QTimer>
-#include "bullet.h"
 
 Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
 {
-    setRect(-15, -15, 30, 30);
-    setBrush(Qt::white);
-    setPen(QPen(QColor(200, 200, 255), 2));
+    setRect(-30, -30, 60, 60);
 
-    wPressed = false;
-    aPressed = false;
-    sPressed = false;
-    dPressed = false;
+    sprite = QPixmap("../../resources/spaceship.png"); // use your resource path
+    if (sprite.isNull()) {
+        qDebug() << "Failed to load spaceship.png";
+    }
+
+    QTransform t;
+    t.rotate(90);
+    sprite = sprite.transformed(t, Qt::SmoothTransformation);
+    sprite = sprite.scaled(rect().size().toSize(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+
+    wPressed = aPressed = sPressed = dPressed = false;
     angle = 0;
     speed = 5.0;
     health = 10;
@@ -95,8 +100,8 @@ void Player::takeDamage(int damage)
     health -= damage;
     emit healthChanged(health, maxHealth);
 
-    // Set invincibility frames (1 second at 60fps)
-    invincibilityFrames = 60;
+    // Set invincibility frames (1/3 second at 60fps)
+    invincibilityFrames = 20;
 
     if (health <= 0)
     {
@@ -149,4 +154,18 @@ void Player::update()
     updateMovement();
     updateInvincibility();
     QGraphicsRectItem::update();
+}
+
+void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+{
+    Q_UNUSED(option);
+    Q_UNUSED(widget);
+
+    // Draw the rectangle outline (optional)
+    //painter->setPen(QPen(QColor(200, 200, 255), 2));
+    //painter->setBrush(Qt::NoBrush);
+    //painter->drawRect(rect());
+
+    // Draw the sprite centered inside the rectangle
+    painter->drawPixmap(rect().topLeft(), sprite);
 }

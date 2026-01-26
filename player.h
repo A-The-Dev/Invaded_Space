@@ -6,6 +6,7 @@
 #include <QPointF>
 #include <QKeyEvent>
 #include <QGraphicsSceneMouseEvent>
+#include <QPainter>
 
 class Player : public QObject, public QGraphicsRectItem
 {
@@ -17,7 +18,7 @@ public:
     void keyReleaseEvent(QKeyEvent *event);
 
     void updateMovement();
-    void updateRotation(QPointF mousePos);
+    void updateRotation(QPointF velocity);
     qreal getAngle() const { return angle; }
 
     int getHealth() const { return health; }
@@ -35,16 +36,17 @@ signals:
     void died();
 
 private:
-    bool wPressed;
-    bool aPressed;
-    bool sPressed;
-    bool dPressed;
+    QPixmap sprite;
+    bool wPressed, aPressed, sPressed, dPressed;
     qreal angle;
     qreal speed;
     int health;
     int maxHealth;
     QPointF knockbackVelocity;
     int invincibilityFrames;
+
+protected:
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr);
 };
 
 #endif // PLAYER_H

@@ -66,7 +66,7 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     }
 
     // Spawn initial enemies
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 6; ++i)
     {
         spawnEnemy();
     }
@@ -77,7 +77,7 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     timer->start(16); // ~60 FPS
 
     // Set window title
-    setWindowTitle("Shooter Game - WASD to move, Mouse to aim, Click to shoot");
+    setWindowTitle("Invaded Space - WASD to move, Mouse to aim, Click to shoot");
 }
 
 void Game::spawnSpaceObject()
@@ -203,8 +203,8 @@ void Game::onPlayerDied()
 void Game::onLevelUp(int level)
 {
     // Show level up notification
-    setWindowTitle(QString("Shooter Game - Level %1!").arg(level));
-
+    setWindowTitle(QString("Invaded Space - Level %1!").arg(level));
+    hud->updateLevel(levelSystem->getLevel());
     // Could add level up effects, bonuses, etc.
 }
 
@@ -261,10 +261,10 @@ void Game::updateGame()
 
     // Spawn enemies periodically
     enemySpawnTimer++;
-    if (enemySpawnTimer >= 300)  // Spawn every 5 seconds
+    if (enemySpawnTimer >= 60)  // Spawn every second
     {
         enemySpawnTimer = 0;
-        if (enemies.size() < 10)  // Cap at 10 enemies
+        if (enemies.size() < 10 * levelSystem->getLevel())  // Cap at 10 enemies * current level
         {
             spawnEnemy();
         }

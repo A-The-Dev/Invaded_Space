@@ -9,8 +9,8 @@ LevelSystem::LevelSystem(QObject *parent) : QObject(parent)
 
 int LevelSystem::calculateXPForLevel(int targetLevel)
 {
-    // XP required grows exponentially: 100, 250, 450, 700, 1000...
-    return 50 + (targetLevel - 1) * 150;
+    // XP required grows: 10, 60, 110, 160, 210...
+    return 10 + (targetLevel - 1) * 50;
 }
 
 void LevelSystem::addXP(int xp)
