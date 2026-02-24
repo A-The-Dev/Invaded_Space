@@ -22,36 +22,53 @@ bool CollisionManager::isOffScreen(QGraphicsItem *item, QPointF cameraCenter, qr
             itemPos.y() > cameraCenter.y() + viewHeight/2 + margin);
 }
 
-void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets, QList<Enemy*> &enemies)
+void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets, QList<Enemy*> &enemies, QList<Boss*> &bosses)
 {
-    // Check bullet-enemy collisions (only player bullets)
+    // Check bullet-enemy/boss collisions (only player bullets)
     for (int i = 0; i < bullets.size(); ++i)
     {
-        if (!bullets[i]->isFromPlayer())
+        Bullet* b = bullets[i];
+        if (!b->isFromPlayer())
             continue;
 
+        bool removed = false;
+
+        // vs enemies
         for (int j = 0; j < enemies.size(); ++j)
         {
-            if (checkCollision(bullets[i], enemies[j]))
+            if (checkCollision(b, enemies[j]))
             {
                 // Utilisation des dégâts dynamiques
                 enemies[j]->takeDamage(bullets[i]->getDamage());
 
-                // Suppression de la balle (ton code actuel)
-                if (i < bullets.size())
-                {
-                    Bullet *bullet = bullets[i];
-                    bullets.removeAt(i);
-                    if (bullet->scene())
-                        bullet->scene()->removeItem(bullet);
-                    delete bullet;
-                    i--;
-                    break;
-                }
+                bullets.removeAt(i);
+                if (b->scene()) b->scene()->removeItem(b);
+                delete b;
+
+                removed = true;
+                --i;               // so outer loop stays correct
+                break;
+            }
+        }
+
+        if (removed) continue;     // IMPORTANT: don't check bosses with a deleted bullet
+
+        // vs bosses
+        for (int j = 0; j < bosses.size(); ++j)
+        {
+            if (checkCollision(b, bosses[j]))
+            {
+                bosses[j]->takeDamage(1);
+
+                bullets.removeAt(i);
+                if (b->scene()) b->scene()->removeItem(b);
+                delete b;
+
+                --i;
+                break;
             }
         }
     }
-
     // Check enemy bullet-player collisions
     for (int i = 0; i < bullets.size(); ++i)
     {
@@ -92,7 +109,29 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets, 
                 player->takeDamage(1);
             }
 
-            emit playerHit(enemies[i]);
+            emit playerHitEnemy(enemies[i]);
+        }
+    }
+    // Check player-enemy collisions with pushback
+    for (int i = 0; i < bosses.size(); ++i)
+    {
+        if (checkCollision(player, bosses[i]))
+        {
+            // Calculate push direction (away from enemy)
+            QPointF playerPos = player->pos();
+            QPointF BossPos = bosses[i]->pos();
+            QPointF pushDir = playerPos - BossPos;
+
+            // Push player back
+            player->pushBack(pushDir, 8.0);
+
+            // Deal damage if not invincible
+            if (!player->isInvincible())
+            {
+                player->takeDamage(1);
+            }
+
+            emit playerHitBoss(bosses[i]);
         }
     }
 }

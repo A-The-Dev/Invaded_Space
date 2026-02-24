@@ -38,6 +38,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         weaponpowerup.cpp
         arduinomanager.h
         arduinomanager.cpp
+        Boss.h
+        Boss.cpp
+        Boss.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET Invaded_Space APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

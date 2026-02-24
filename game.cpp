@@ -56,12 +56,13 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     // Initialize spawn timer
     spawnTimer = 0;
     enemySpawnTimer = 0;
+    bossSpawnTimer = 0;
 
     // Create collision manager
     collisionManager = new CollisionManager(this);
     connect(collisionManager, &CollisionManager::enemyDestroyed, this, &Game::onEnemyDestroyed);
-    connect(collisionManager, &CollisionManager::playerHit, this, &Game::onPlayerHit);
-
+    connect(collisionManager, &CollisionManager::playerHitEnemy, this, &Game::onPlayerHit);
+    connect(collisionManager, &CollisionManager::playerHitBoss, this, &Game::onPlayerHit);
     // Connect player signals
     connect(player, &Player::died, this, &Game::onPlayerDied);
     connect(player, &Player::healthChanged, this, [this](int health, int maxHealth) {
@@ -161,6 +162,43 @@ void Game::spawnEnemy()
     enemies.append(enemy);
 }
 
+void Game::spawnBoss()
+{
+    QRandomGenerator *rng = QRandomGenerator::global();
+
+    // Spawn away from player
+    QPointF playerPos = player->pos();
+    qreal angle = rng->bounded(360) * M_PI / 180;
+    qreal distance = rng->bounded(400, 700);
+
+    QPointF spawnPos(
+        playerPos.x() + qCos(angle) * distance,
+        playerPos.y() + qSin(angle) * distance
+        );
+
+    // Random boss type
+    int typeRoll = rng->bounded(100);
+    Boss::BossType type;
+
+    if (typeRoll < 40)
+        type = Boss::Boss1;
+    else if (typeRoll < 65)
+        type = Boss::Boss2;
+    else if (typeRoll < 80)
+        type = Boss::Boss3;
+    else
+        type = Boss::Boss4;
+
+    Boss *boss = new Boss(type, spawnPos);
+    connect(boss, &Boss::destroyed, this, [this, boss]() {
+        onBossDestroyed(boss);
+    });
+    connect(boss, &Boss::shootBullet, this, &Game::onEnemyShoot);
+    scene->addItem(boss);
+    bosses.append(boss);
+}
+
+
 void Game::mouseMoveEvent(QMouseEvent *event)
 {
     QPointF scenePos = mapToScene(event->pos());
@@ -200,12 +238,25 @@ void Game::onEnemyDestroyed(Enemy *enemy)
     enemy->deleteLater();
 
 }
+void Game::onBossDestroyed(Boss *boss)
+{
+    // Spawn XP orb at enemy position
+    int xpValue = 500;  // Base XP value
+    XPOrb *orb = new XPOrb(boss->pos(), xpValue);
+    scene->addItem(orb);
+    xpOrbs.append(orb);
+
+    bosses.removeOne(boss);
+    scene->removeItem(boss);
+    boss->deleteLater();
+}
 
 void Game::onPlayerHit(Enemy *enemy)
 {
     // Player already gets pushed back in collision manager
     // Health is handled by player's takeDamage
 }
+
 
 void Game::onEnemyShoot(QPointF position, qreal angle)
 {
@@ -313,13 +364,26 @@ void Game::updateGame()
             spawnEnemy();
         }
     }
+    // Spawn Bosses periodically
+    bossSpawnTimer++;
+    if ( bossSpawnTimer >= 60)
+    {
+        if (bosses.size() < 1 )  // Cap at 1 boss
+        {
+            spawnBoss();
+        }
 
+    }
     // Update enemies
     for (int i = 0; i < enemies.size(); ++i)
     {
         enemies[i]->updateMovement(playerPos);
     }
-
+    // Update bosses
+    for (int i = 0; i < bosses.size(); ++i)
+    {
+        bosses[i]->updateMovement(playerPos);
+    }
     // Update XP orbs
     for (int i = 0; i < xpOrbs.size(); ++i)
     {
@@ -374,12 +438,15 @@ void Game::updateGame()
                         enemyPos.y() + (dy / distance) * 3.0
                         );
                 }
+
             }
         }
+
     }
 
     // Check collisions
-    collisionManager->checkCollisions(player, bullets, enemies);
+    collisionManager->checkCollisions(player, bullets, enemies,bosses);
+
 
     // Update all bullets (use index-based loop to avoid detachment warning)
     QList<Bullet*> bulletsToRemove;
@@ -424,3 +491,4 @@ void Game::updateGame()
     // On simule un mouvement vers la droite (0 rad) à pleine vitesse et un tir
     // player->updateFromJoystick(0.0, 1.0, false);
 }
+
