@@ -46,6 +46,10 @@ Enemy::Enemy(EnemyType type, QPointF startPos, QGraphicsItem *parent)
         health = 3;
         speed = 1.5;
         break;
+    case bossenemy:
+        health = 3;
+        speed = 1.5;
+        break;
     }
 }
 
@@ -152,6 +156,11 @@ void Enemy::updateMovement(QPointF playerPos)
             emit shootBullet(currentPos, angle);
         }
         break;
+
+    }
+        case bossenemy:
+    {
+
     }
     }
 
@@ -188,13 +197,44 @@ void Enemy::takeDamage(int damage)
                 setBrush(QColor(100, 100, 255));
                 break;
             case Shooter:
-                setBrush(QColor(200, 100, 200));
+                setBrush(QColor(200, 100, 200));                
                 break;
             }
+
+
         });
     }
     else
     {
         emit destroyed();
     }
+}
+
+void Enemy::setHealth(int nouveauHealth)
+{
+    health = nouveauHealth;
+}
+void Enemy::setSpeed(qreal nouveauspeed)
+{
+    speed = nouveauspeed;
+}
+
+void Enemy::setShootTimer(int nouveausettimer)
+{
+    shootTimer = nouveausettimer;
+}
+
+void Enemy::setAngle(qreal nouveauangle)
+{
+    angle = nouveauangle;
+}
+
+void Enemy::setWanderTimer(int nouveauwandertimer)
+{
+    wanderTimer = nouveauwandertimer;
+}
+
+void Enemy::setTargetPosition(QPointF TargetPosition)
+{
+    targetPos = TargetPosition;
 }

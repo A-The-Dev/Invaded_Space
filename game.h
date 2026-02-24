@@ -14,6 +14,7 @@
 #include "hud.h"
 #include "levelsystem.h"
 #include "xporb.h"
+#include "Boss.h"
 
 class Game : public QGraphicsView
 {
@@ -31,6 +32,7 @@ public slots:
     void updateGame();
     void onEnemyDestroyed(Enemy *enemy);
     void onPlayerHit(Enemy *enemy);
+    void onBossDestroyed(Boss *boss);
     void onEnemyShoot(QPointF position, qreal angle);
     void onPlayerDied();
     void onLevelUp(int level);
@@ -43,6 +45,7 @@ private:
     QList<Bullet*> bullets;
     QList<SpaceObject*> spaceObjects;
     QList<Enemy*> enemies;
+    QList<Boss*> bosses;
     QList<XPOrb*> xpOrbs;
     CollisionManager *collisionManager;
     HUD *hud;
@@ -51,9 +54,11 @@ private:
     qreal cameraSmoothing;
     int spawnTimer;
     int enemySpawnTimer;
+    int bossSpawnTimer;
 
     void spawnSpaceObject();
     void spawnEnemy();
+    void spawnBoss();
 };
 
 #endif // GAME_H
