@@ -4,38 +4,77 @@
 #include <QPen>
 #include <QRadialGradient>
 
-Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer,int damage,  QGraphicsItem *parent)
+Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer,BossType type , bool fromBoss ,int damage,  QGraphicsItem *parent)
     : QGraphicsEllipseItem(parent), fromPlayer(fromPlayer), damage(damage)
 {
     // Create a perfect circle
     qreal radius = 4;
-    setRect(-radius, -radius, radius * 2, radius * 2);
+    this->type = type;
 
     // Create glowing bullet effect with radial gradient centered at (0, 0)
-    QRadialGradient gradient(0, 0, radius);
+    QLinearGradient linearGrad(QPointF(100, 100), QPointF(200, 200));
 
     if (fromPlayer)
     {
         // Player bullets: Yellow/Orange/Red
-        gradient.setColorAt(0, QColor(255, 255, 100));
-        gradient.setColorAt(0.5, QColor(255, 150, 0));
-        gradient.setColorAt(1, QColor(255, 50, 0));
+        setRect(-radius, -radius, radius * 2, radius * 2);
         setPen(QPen(QColor(255, 200, 0), 1));
+        this->angle = angle;
+        this->speed = 10.0;
+    }
+    else if(fromBoss)
+    {
+        if(type == Boss1)
+        {
+            setRect(-radius, -radius, radius * 2, radius * 2);
+            setPen(QPen(QColor(200, 100, 200), 1));
+            this->angle = angle;
+            this->speed = 10.0;
+        }
+        else if(type == Boss2)
+        {
+            setRect(-15, -15, 100, 40);
+            setZValue(100);
+
+            sprite = QPixmap("../../resources/TrumpIceBullet.png");
+
+            QTransform t;
+
+            if (sprite.isNull())
+            {
+                qDebug() << "Failed to load :/resources/TrumpIceBullet.png";
+            }
+            sprite = sprite.transformed(t, Qt::SmoothTransformation);
+            setBrush(Qt::transparent);
+            this->angle = angle;
+            this->speed = 15.0;
+        }
+        else if( type == Boss4)
+        {
+
+            setRect(-15, -15, 100, 10);
+            setPen(QPen(QColor(200, 100, 200), 1));
+
+            setPos(startPos);
+            setRotation(angle);
+            this->angle = angle;
+            this->speed = 25.0;
+        }
     }
     else
     {
         // Enemy bullets: Purple/Magenta
-        gradient.setColorAt(0, QColor(255, 100, 255));
-        gradient.setColorAt(0.5, QColor(200, 50, 200));
-        gradient.setColorAt(1, QColor(150, 0, 150));
+        setRect(-radius, -radius, radius * 2, radius * 2);
         setPen(QPen(QColor(200, 100, 200), 1));
+        this->angle = angle;
+        this->speed = 10.0;
     }
 
-    setBrush(QBrush(gradient));
+    setBrush(QBrush(linearGrad));
     setPos(startPos);
     setRotation(0);
-    this->angle = angle;
-    this->speed = 10.0;
+
+
 }
 
 void Bullet::move()
@@ -62,4 +101,43 @@ void Bullet::move()
         setPos(currentPos.x(), -halfHeight);
     else if (currentPos.y() < -halfHeight)
         setPos(currentPos.x(), halfHeight);
+}
+
+qreal Bullet::getSpeed()
+{
+    return speed;
+}
+
+void Bullet::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+{
+    Q_UNUSED(option);
+    Q_UNUSED(widget);
+
+    painter->setRenderHint(QPainter::Antialiasing, true);
+    painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
+
+    if (this->type == Boss2)
+    {
+        //Si boss 2
+        QPainterPath path;
+        path.addEllipse(rect());
+        painter->setClipPath(path);
+
+        if (!sprite.isNull()) {
+            painter->drawPixmap(rect().toRect(), sprite);
+        } else {
+            // Si image ne load pas bien
+            painter->setBrush(Qt::red);
+            painter->setPen(QPen(Qt::white, 3));
+            painter->drawEllipse(rect());
+        }
+    }
+    else
+    {
+        //fait les bullet normal
+        painter->setPen(this->pen());
+        painter->setBrush(this->brush());
+
+        painter->drawEllipse(rect());
+    }
 }

@@ -33,7 +33,7 @@ public slots:
     void onEnemyDestroyed(Enemy *enemy);
     void onPlayerHit(Enemy *enemy);
     void onBossDestroyed(Boss *boss);
-    void onEnemyShoot(QPointF position, qreal angle);
+    void onEnemyShoot(QPointF position, qreal angle,bool boss);
     void onPlayerDied();
     void onLevelUp(int level);
     void onXPOrbCollected(XPOrb *orb);

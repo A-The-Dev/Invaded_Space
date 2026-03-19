@@ -1,17 +1,17 @@
 #ifndef BOSS_H
 #define BOSS_H
 
-
-#include <QGraphicsRectItem>
 #include <QObject>
 #include <QPointF>
+#include <QPainter>
+#include <QPixmap>
 #include "enemy.h"
 
 class Boss : public Enemy
 {
     Q_OBJECT
 public:
-    enum BossType { Boss1, Boss2, Boss3, Boss4 };
+    enum BossType { Boss1, Boss2, Boss4 };
 
     Boss(BossType type, QPointF startPos, QGraphicsItem *parent = nullptr);
 
@@ -21,11 +21,14 @@ public:
 
 signals:
     void destroyed();
-    void shootBullet(QPointF position, qreal angle);
+    void shootBullet(QPointF position, qreal angle, bool boss);
 
+protected:
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr);
 private:
     BossType type;
-};
+    QPixmap sprite;
 
+};
 
 #endif // BOSS_H
