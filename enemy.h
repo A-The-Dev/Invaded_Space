@@ -36,7 +36,7 @@ public:
 
 signals:
     void destroyed();
-    void shootBullet(QPointF position, qreal angle);
+    void shootBullet(QPointF position, qreal angle,bool boss);
 
 private:
     EnemyType type;

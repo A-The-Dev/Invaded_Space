@@ -153,7 +153,7 @@ void Enemy::updateMovement(QPointF playerPos)
         if (shootTimer >= 120)  // Shoot every 2 seconds
         {
             shootTimer = 0;
-            emit shootBullet(currentPos, angle);
+            emit shootBullet(currentPos, angle, false);
         }
         break;
 

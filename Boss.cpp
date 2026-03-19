@@ -14,42 +14,62 @@ Boss::Boss(BossType type, QPointF startPos, QGraphicsItem *parent)
     {
     case Boss1:
     {
-        setRect(-12, -12, 400, 400);
-        setBrush(QColor(255, 50, 50));  // Red
-        setPen(QPen(QColor(200, 0, 0), 2));
+        setRect(-100, -200, 100, 300);
+        setZValue(100);
+
+        sprite = QPixmap("../../resources/DragonBossChaser.png");
+        if (sprite.isNull())
+        {
+            qDebug() << "Failed to load :/resources/DragonBossChaser.png";
+        }
+
+        QTransform t;
+        t.rotate(90);
+        sprite = sprite.transformed(t, Qt::SmoothTransformation);
         setHealth(300);
-        setSpeed(7.0);
+        setSpeed(5.5);
         break;
     }
 
     case Boss2:
     {
         setRect(-15, -15, 300, 300);
-        setBrush(QColor(100, 255, 100));  // Green
-        setPen(QPen(QColor(0, 200, 0), 2));
+        setZValue(100);
+
+        sprite = QPixmap("../../resources/trump.png");
+        if (sprite.isNull())
+        {
+            qDebug() << "Failed to load :/resources/DragonBossChaser.png";
+        }
+
+        QTransform t;
+        t.rotate(90);
+        sprite = sprite.transformed(t, Qt::SmoothTransformation);
+
         setHealth(200);
-        setSpeed(5.0);
+        setSpeed(3.0);
         setTargetPosition(startPos);
         break;
     }
-
-    case Boss3:
-    {
-        setRect(-18, -18, 500, 500);
-        setBrush(QColor(100, 100, 255));  // Blue
-        setPen(QPen(QColor(0, 0, 200), 2));
-        setHealth(500);
-        setSpeed(0.0);
-        break;
-    }
-
     case Boss4:
     {
-        setRect(-14, -14, 600, 600);
-        setBrush(QColor(200, 100, 200));  // Purple
-        setPen(QPen(QColor(150, 0, 150), 2));
+        setRect(-300, -300, 600, 600);
+        setZValue(100);
+
+        sprite = QPixmap("../../resources/DeathStarBoss.png");
+        if (sprite.isNull()) {
+            qDebug() << "Failed to load DeathStarBoss.png";
+        } else {
+            qDebug() << "Loaded DeathStarBoss.png";
+        }
+
+        QTransform t;
+        t.rotate(90);
+        sprite = sprite.transformed(t, Qt::SmoothTransformation);
+
+
         setHealth(1000);
-        setSpeed(0.5);
+        setSpeed(1.0);
         break;
     }
     }
@@ -75,7 +95,7 @@ void Boss::updateMovement(QPointF playerPos)
             setPos(currentPos.x() + dx, currentPos.y() + dy);
 
             // Rotate to face player
-            setAngle( qAtan2(dy, dx) * 180 / M_PI);
+            setAngle( qAtan2(dy, dx) * 45 / M_PI);
             setRotation(getAngle());
         }
         break;
@@ -83,42 +103,40 @@ void Boss::updateMovement(QPointF playerPos)
 
     case Boss2:
     {
-        // Pick new random target periodically
-        setWanderTimer(getWanderTimer()+1);
-        if (getWanderTimer() >= 180)  // Every 3 seconds
-        {
-            QRandomGenerator *rng = QRandomGenerator::global();
-            setTargetPosition(QPointF(currentPos.x() + rng->bounded(-200, 200), currentPos.y() + rng->bounded(-200, 200)));
-            setWanderTimer(0);
-        }
-
-        // Move toward target
-        qreal dx = getTargetPosition().x() - currentPos.x();
-        qreal dy = getTargetPosition().y() - currentPos.y();
+        // Keep distance from player (kiting behavior)
+        qreal dx = playerPos.x() - currentPos.x();
+        qreal dy = playerPos.y() - currentPos.y();
         qreal distance = qSqrt(dx * dx + dy * dy);
 
-        if (distance > 5)
+        // Try to maintain distance of 150 units
+        qreal targetDistance = 150;
+        if (distance < targetDistance)
         {
+            // Move away
+            dx = -(dx / distance) * getSpeed();
+            dy = -(dy / distance) * getSpeed();
+            setPos(currentPos.x() + dx, currentPos.y() + dy);
+        }
+        else if (distance > targetDistance + 100)
+        {
+            // Move closer
             dx = (dx / distance) * getSpeed();
             dy = (dy / distance) * getSpeed();
             setPos(currentPos.x() + dx, currentPos.y() + dy);
+        }
 
-            setAngle(qAtan2(dy, dx) * 180 / M_PI);
-            setRotation(getAngle());
+        // Always face player
+        setAngle(qAtan2(playerPos.y() - currentPos.y(), playerPos.x() - currentPos.x()) * 150 / M_PI);
+        setRotation(getAngle());
+
+        setShootTimer(getShootTimer()+1);
+        if (getShootTimer() >= 30)  // Shoot every 0.5 seconds
+        {
+            setShootTimer(0);
+            emit shootBullet(currentPos, getAngle(), true);
         }
         break;
     }
-
-    case Boss3:
-    {
-        // Rotate to face player
-        qreal dx = playerPos.x() - currentPos.x();
-        qreal dy = playerPos.y() - currentPos.y();
-        setAngle(qAtan2(dy, dx) * 180 / M_PI);
-        setRotation(getAngle());
-        break;
-    }
-
     case Boss4:
     {
         // Keep distance from player (kiting behavior)
@@ -152,7 +170,7 @@ void Boss::updateMovement(QPointF playerPos)
         if (getShootTimer() >= 120)  // Shoot every 2 seconds
         {
             setShootTimer(0);
-            emit shootBullet(currentPos, getAngle());
+            emit shootBullet(currentPos, getAngle(), true);
         }
         break;
     }
@@ -187,9 +205,6 @@ void Boss::takeDamage(int damage)
             case Boss2:
                 setBrush(QColor(100, 255, 100));
                 break;
-            case Boss3:
-                setBrush(QColor(100, 100, 255));
-                break;
             case Boss4:
                 setBrush(QColor(200, 100, 200));
                 break;
@@ -199,5 +214,38 @@ void Boss::takeDamage(int damage)
     else
     {
         emit destroyed();
+    }
+}
+void Boss::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+{
+    Q_UNUSED(option);
+    Q_UNUSED(widget);
+
+    painter->setRenderHint(QPainter::Antialiasing, true);
+    painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
+
+    if (type == Boss4)
+    {
+        QPainterPath path;
+        path.addEllipse(rect());
+        painter->setClipPath(path);
+
+        if (!sprite.isNull()) {
+            painter->drawPixmap(rect().toRect(), sprite);
+        } else {
+            painter->setBrush(Qt::red);
+            painter->setPen(QPen(Qt::white, 3));
+            painter->drawEllipse(rect());
+        }
+    }
+    else
+    {
+        if (!sprite.isNull()) {
+            painter->drawPixmap(rect().toRect(), sprite);
+        } else {
+            painter->setBrush(Qt::red);
+            painter->setPen(QPen(Qt::white, 3));
+            painter->drawRect(rect());
+        }
     }
 }

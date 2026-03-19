@@ -160,12 +160,10 @@ void Game::spawnBoss()
     int typeRoll = rng->bounded(100);
     Boss::BossType type;
 
-    if (typeRoll < 40)
+    if (typeRoll < 33)
         type = Boss::Boss1;
-    else if (typeRoll < 65)
+    else if (typeRoll < 66)
         type = Boss::Boss2;
-    else if (typeRoll < 80)
-        type = Boss::Boss3;
     else
         type = Boss::Boss4;
 
@@ -237,11 +235,38 @@ void Game::onPlayerHit(Enemy *enemy)
 }
 
 
-void Game::onEnemyShoot(QPointF position, qreal angle)
+void Game::onEnemyShoot(QPointF position, qreal angle,bool boss)
 {
-    Bullet *bullet = new Bullet(position, angle, false);  // false = enemy bullet
-    scene->addItem(bullet);
-    bullets.append(bullet);
+    if( boss == true)
+    {   
+        Boss::BossType type = bosses[0]->getType();
+        if( type == Boss::Boss1)
+        {
+            Bullet *bullet = new Bullet(position, angle, false,Bullet::Boss1,true);
+            scene->addItem(bullet);
+            bullets.append(bullet);
+        }
+        else if(type == Boss::Boss2)
+        {
+            Bullet *bullet = new Bullet(position, angle, false,Bullet::Boss2,true);
+            scene->addItem(bullet);
+            bullets.append(bullet);
+        }
+        else if(type == Boss::Boss4)
+        {
+            Bullet *bullet = new Bullet(position, angle, false,Bullet::Boss4,true);
+            scene->addItem(bullet);
+            bullets.append(bullet);
+
+        }
+    }
+    else
+    {
+        Bullet *bullet = new Bullet(position, angle, false);  // false = enemy bullet
+        scene->addItem(bullet);
+        bullets.append(bullet);
+    }
+
 }
 
 void Game::onPlayerDied()
@@ -315,7 +340,7 @@ void Game::updateGame()
     if (enemySpawnTimer >= 60)  // Spawn every second
     {
         enemySpawnTimer = 0;
-        if (enemies.size() < 10 * levelSystem->getLevel())  // Cap at 10 enemies * current level
+        if (enemies.size() < 0 * levelSystem->getLevel())  // Cap at 10 enemies * current level
         {
             spawnEnemy();
         }
@@ -330,6 +355,15 @@ void Game::updateGame()
         }
 
     }
+
+    /*if ( levelSystem->getLevel()%5==0)
+    {
+        if (bosses.size() < 1 )  // Cap at 1 boss
+        {
+            spawnBoss();
+        }
+
+    }*/
     // Update enemies
     for (int i = 0; i < enemies.size(); ++i)
     {
