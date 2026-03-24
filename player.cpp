@@ -3,6 +3,8 @@
 #include <QGraphicsScene>
 #include <QtMath>
 #include <QTimer>
+#include <cmath>
+#include "bullet.h"
 
 Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
 {
@@ -155,6 +157,16 @@ void Player::update()
     updateInvincibility();
     QGraphicsRectItem::update();
 }
+void Player::refillHealth() {
+    health = maxHealth;
+    emit healthChanged(health, maxHealth);
+}
+
+void Player::increaseMaxHealth(int amount) {
+    maxHealth += amount;
+    health += amount; // On donne aussi un petit bonus de vie actuelle
+    emit healthChanged(health, maxHealth);
+}
 
 void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
@@ -168,4 +180,25 @@ void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
 
     // Draw the sprite centered inside the rectangle
     painter->drawPixmap(rect().topLeft(), sprite);
+}
+void Player::updateFromJoystick(double angle, double vitesse, bool tir) {
+    // On définit une zone morte (0.1)
+    if (vitesse > 0.1) {
+        double vx = std::cos(angle) * vitesse * speed;
+        double vy = std::sin(angle) * vitesse * speed;
+
+        // On applique le déplacement
+        this->setX(this->x() + vx);
+        this->setY(this->y() + vy);
+    }
+
+    if (tir) {
+        this->shoot();
+    }
+}
+void Player::shoot() {
+    // On utilise pos() pour la position et l'angle actuel du vaisseau
+    Bullet *bullet = new Bullet(this->pos(), this->angle, true, this->getAttackDamage());
+
+    emit bulletFired(bullet);
 }

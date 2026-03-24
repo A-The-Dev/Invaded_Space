@@ -34,10 +34,10 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets, 
         {
             if (checkCollision(bullets[i], enemies[j]))
             {
-                // Damage enemy
-                enemies[j]->takeDamage(1);
+                // Utilisation des dégâts dynamiques
+                enemies[j]->takeDamage(bullets[i]->getDamage());
 
-                // Remove bullet
+                // Suppression de la balle (ton code actuel)
                 if (i < bullets.size())
                 {
                     Bullet *bullet = bullets[i];

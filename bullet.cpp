@@ -4,8 +4,8 @@
 #include <QPen>
 #include <QRadialGradient>
 
-Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer, QGraphicsItem *parent)
-    : QGraphicsEllipseItem(parent), fromPlayer(fromPlayer)
+Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer,int damage,  QGraphicsItem *parent)
+    : QGraphicsEllipseItem(parent), fromPlayer(fromPlayer), damage(damage)
 {
     // Create a perfect circle
     qreal radius = 4;

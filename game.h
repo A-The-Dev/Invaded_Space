@@ -14,7 +14,7 @@
 #include "hud.h"
 #include "levelsystem.h"
 #include "xporb.h"
-
+#include "arduinomanager.h"
 class Game : public QGraphicsView
 {
     Q_OBJECT
@@ -51,6 +51,7 @@ private:
     qreal cameraSmoothing;
     int spawnTimer;
     int enemySpawnTimer;
+    ArduinoManager *arduino;
 
     void spawnSpaceObject();
     void spawnEnemy();

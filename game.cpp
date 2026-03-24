@@ -1,4 +1,5 @@
 #include "game.h"
+#include "upgrade_menu.h"
 #include <QKeyEvent>
 #include <QLineF>
 #include <QRandomGenerator>
@@ -27,6 +28,18 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     player = new Player();
     player->setPos(0, 0);
     scene->addItem(player);
+
+    arduino = new ArduinoManager(this);
+    arduino->connectToArduino("COM3");
+
+    // 1. Reçoit les données de l'Arduino et fait bouger/tirer le joueur
+    connect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
+
+    // 2. Reçoit la balle créée par le joueur et l'ajoute à la liste de collision
+    connect(player, &Player::bulletFired, this, [this](Bullet* b){
+        scene->addItem(b);
+        bullets.append(b);
+    });
 
     // Initialize camera
     cameraTarget = player->pos();
@@ -151,7 +164,7 @@ void Game::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        Bullet *bullet = new Bullet(player->pos(), player->getAngle());
+        Bullet *bullet = new Bullet(player->pos(), player->getAngle(), true, player->getAttackDamage());
         scene->addItem(bullet);  // Add to scene directly, not as child of player
         bullets.append(bullet);
     }
@@ -171,13 +184,14 @@ void Game::onEnemyDestroyed(Enemy *enemy)
 {
     // Spawn XP orb at enemy position
     int xpValue = 10;  // Base XP value
-    XPOrb *orb = new XPOrb(enemy->pos(), xpValue);
+    XPOrb *orb = new XPOrb(enemy->pos(), 20);
     scene->addItem(orb);
     xpOrbs.append(orb);
 
     enemies.removeOne(enemy);
     scene->removeItem(enemy);
     enemy->deleteLater();
+
 }
 
 void Game::onPlayerHit(Enemy *enemy)
@@ -200,12 +214,58 @@ void Game::onPlayerDied()
     setWindowTitle("GAME OVER - Close to restart");
 }
 
-void Game::onLevelUp(int level)
+/*void Game::onLevelUp(int level)
 {
-    // Show level up notification
+    // Notification visuelle (titre de la fenêtre)
     setWindowTitle(QString("Invaded Space - Level %1!").arg(level));
     hud->updateLevel(levelSystem->getLevel());
-    // Could add level up effects, bonuses, etc.
+
+
+    // 1. Santé : +2 points de vie max et on soigne tout
+    player->increaseMaxHealth(2);
+    player->refillHealth();
+
+
+    // 3. PUISSANCE  : On augmente les dégâts de +1 à chaque montée de niveau
+    int nouveauxDegats = player->getAttackDamage() + 1;
+    player->setAttackDamage(nouveauxDegats);
+
+    // Debug pour vérifier dans la console
+    qDebug() << "LEVEL UP ! Niveau :" << level
+             << "| Dégâts :" << player->getAttackDamage();
+}*/
+void Game::onLevelUp(int level)
+{
+    // 1. Mettre le jeu en pause
+    timer->stop();
+
+    // 2. Créer et afficher le menu
+    UpgradeMenu *menu = new UpgradeMenu(this);
+
+    // On connecte le choix du menu aux actions du joueur
+    connect(menu, &UpgradeMenu::upgradeSelected, [this](int choice) {
+        if (choice == 0) { // Vitesse
+            //player->setSpeed(player->getSpeed() + 0.5);
+        }
+        else if (choice == 1) { // Dégâts
+            player->setAttackDamage(player->getAttackDamage() + 1);
+        }
+        else if (choice == 2) { // Vie
+            player->increaseMaxHealth(2);
+            player->refillHealth();
+        }
+    });
+
+    // 3. Exécuter le menu (Bloque ici jusqu'à ce qu'on clique)
+    menu->exec();
+
+    // 4. Relancer le jeu après la fermeture du menu
+    timer->start();
+
+    // Mise à jour du HUD
+    hud->updateLevel(level);
+    setWindowTitle(QString("Invaded Space - Level %1").arg(level));
+    arduino->sendGameState(level, 0);
 }
 
 void Game::onXPOrbCollected(XPOrb *orb)
@@ -357,4 +417,8 @@ void Game::updateGame()
         scene->removeItem(bulletsToRemove[i]);
         delete bulletsToRemove[i];
     }
+    player->updateFromJoystick(0.0, 0.0, true);
+    // LIGNE DE TEST TEMPORAIRE :
+    // On simule un mouvement vers la droite (0 rad) à pleine vitesse et un tir
+    // player->updateFromJoystick(0.0, 1.0, false);
 }
