@@ -11,10 +11,10 @@ class ArduinoManager : public QObject {
 public:
     explicit ArduinoManager(QObject *parent = nullptr);
     bool connectToArduino(const QString &portName);
-    void sendGameState(int level, int bossID);
+    void sendGameState(int level, int bossID, bool del);
 
 signals:
-    void commandReceived(double angle, double vitesse, bool tir);
+    void commandReceived(double angle, double vitesse, bool tir, bool ultimate);
 
 private slots:
     void readSerial();

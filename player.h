@@ -7,6 +7,7 @@
 #include <QKeyEvent>
 #include <QGraphicsSceneMouseEvent>
 #include <QPainter>
+#include <QElapsedTimer>
 #include "bullet.h"
 class Player : public QObject, public QGraphicsRectItem
 {
@@ -31,7 +32,8 @@ public:
     void updateInvincibility();
     int getAttackDamage() const { return attackDamage; }
     void setAttackDamage(int val) { attackDamage = val; }
-    void updateFromJoystick(double angle, double vitesse, bool tir);
+    //void updateFromJoystick(double angle, double vitesse, bool tir);
+    void updateFromJoystick(qreal axisX, qreal axisY, bool isShooting);
     void shoot();
     //void setWeapon(WeaponType type) { currentWeapon = type; }
    // WeaponType getWeapon() const { return currentWeapon; }
@@ -54,6 +56,9 @@ private:
     QPointF knockbackVelocity;
     int invincibilityFrames;
     int attackDamage = 1;
+    bool useJoystick = false;
+    QElapsedTimer lastShotTimer;
+    int msBetweenShots = 200; // 200ms = 5 balles par seconde max
    // WeaponType currentWeapon = Normal;
 
 protected:

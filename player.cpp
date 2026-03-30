@@ -3,6 +3,7 @@
 #include <QGraphicsScene>
 #include <QtMath>
 #include <QTimer>
+#include <QDebug>
 #include <cmath>
 #include "bullet.h"
 
@@ -24,14 +25,23 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
     wPressed = aPressed = sPressed = dPressed = false;
     angle = 0;
     speed = 5.0;
-    health = 10;
+    health = 1000;
     maxHealth = 10;
     knockbackVelocity = QPointF(0, 0);
     invincibilityFrames = 0;
+    lastShotTimer.start();
 }
 
 void Player::keyPressEvent(QKeyEvent *event)
 {
+    if (useJoystick){
+        return;
+    }
+    if (this->useJoystick) {
+        qDebug() << "BLOQUÉ !";
+        return;
+    }
+    qDebug() << "CLAVIER ACTIF";
     if (event->key() == Qt::Key_W) wPressed = true;
     if (event->key() == Qt::Key_A) aPressed = true;
     if (event->key() == Qt::Key_S) sPressed = true;
@@ -40,6 +50,9 @@ void Player::keyPressEvent(QKeyEvent *event)
 
 void Player::keyReleaseEvent(QKeyEvent *event)
 {
+    if (useJoystick) {
+        return;
+    }
     if (event->key() == Qt::Key_W) wPressed = false;
     if (event->key() == Qt::Key_A) aPressed = false;
     if (event->key() == Qt::Key_S) sPressed = false;
@@ -181,21 +194,31 @@ void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
     // Draw the sprite centered inside the rectangle
     painter->drawPixmap(rect().topLeft(), sprite);
 }
-void Player::updateFromJoystick(double angle, double vitesse, bool tir) {
-    // On définit une zone morte (0.1)
-    if (vitesse > 0.1) {
-        double vx = std::cos(angle) * vitesse * speed;
-        double vy = std::sin(angle) * vitesse * speed;
 
-        // On applique le déplacement
-        this->setX(this->x() + vx);
-        this->setY(this->y() + vy);
+void Player::updateFromJoystick(double axisX, double axisY, bool tir)
+{
+    //  Gérer le mouvement fluide
+    qreal speed = 5.0; // Ta vitesse max
+
+    // On déplace le joueur en fonction de l'inclinaison du joystick
+    this->setPos(x() + (axisX * speed), y() + (axisY * speed));
+
+    //  Gérer la rotation
+    if (qAbs(axisX) > 0.1 || qAbs(axisY) > 0.1) { // Zone morte pour éviter de trembler
+        qreal angle = qAtan2(axisY, axisX) * 180 / M_PI;
+        setRotation(angle);
     }
 
+    // Gérer le tir
     if (tir) {
-        this->shoot();
+        //this->shoot();
+        if (lastShotTimer.elapsed() > msBetweenShots) {
+            this->shoot();
+            lastShotTimer.restart(); // On remet le compteur à zéro
+        }
     }
 }
+
 void Player::shoot() {
     // On utilise pos() pour la position et l'angle actuel du vaisseau
     Bullet *bullet = new Bullet(this->pos(), this->angle, true, this->getAttackDamage());

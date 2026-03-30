@@ -4,6 +4,7 @@
 #include <QLineF>
 #include <QRandomGenerator>
 #include <QtMath>
+#include "arduinomanager.h"
 
 Game::Game(QWidget *parent) : QGraphicsView(parent)
 {
@@ -30,7 +31,13 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     scene->addItem(player);
 
     arduino = new ArduinoManager(this);
-    arduino->connectToArduino("COM3");
+   // arduino->connectToArduino("COM3");
+    if (arduino->connectToArduino("COM3")) {
+        // On attend 2 secondes que l'Arduino finisse de rebooter avant d'envoyer
+        /*QTimer::singleShot(2000, this, [this](){
+            arduino->sendGameState(levelSystem->getLevel(), 1);
+        });*/
+    }
 
     // 1. Reçoit les données de l'Arduino et fait bouger/tirer le joueur
     connect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
@@ -213,36 +220,15 @@ void Game::onPlayerDied()
     timer->stop();
     setWindowTitle("GAME OVER - Close to restart");
 }
-
-/*void Game::onLevelUp(int level)
-{
-    // Notification visuelle (titre de la fenêtre)
-    setWindowTitle(QString("Invaded Space - Level %1!").arg(level));
-    hud->updateLevel(levelSystem->getLevel());
-
-
-    // 1. Santé : +2 points de vie max et on soigne tout
-    player->increaseMaxHealth(2);
-    player->refillHealth();
-
-
-    // 3. PUISSANCE  : On augmente les dégâts de +1 à chaque montée de niveau
-    int nouveauxDegats = player->getAttackDamage() + 1;
-    player->setAttackDamage(nouveauxDegats);
-
-    // Debug pour vérifier dans la console
-    qDebug() << "LEVEL UP ! Niveau :" << level
-             << "| Dégâts :" << player->getAttackDamage();
-}*/
 void Game::onLevelUp(int level)
 {
-    // 1. Mettre le jeu en pause
+    // Met le jeu en pause
     timer->stop();
 
-    // 2. Créer et afficher le menu
+    // Créer et afficher le menu
     UpgradeMenu *menu = new UpgradeMenu(this);
 
-    // On connecte le choix du menu aux actions du joueur
+    //Connecte le choix du menu aux actions du joueur
     connect(menu, &UpgradeMenu::upgradeSelected, [this](int choice) {
         if (choice == 0) { // Vitesse
             //player->setSpeed(player->getSpeed() + 0.5);
@@ -256,16 +242,14 @@ void Game::onLevelUp(int level)
         }
     });
 
-    // 3. Exécuter le menu (Bloque ici jusqu'à ce qu'on clique)
     menu->exec();
 
-    // 4. Relancer le jeu après la fermeture du menu
+    // Relance le jeu après la fermeture du menu
     timer->start();
 
     // Mise à jour du HUD
     hud->updateLevel(level);
     setWindowTitle(QString("Invaded Space - Level %1").arg(level));
-    arduino->sendGameState(level, 0);
 }
 
 void Game::onXPOrbCollected(XPOrb *orb)
@@ -417,7 +401,25 @@ void Game::updateGame()
         scene->removeItem(bulletsToRemove[i]);
         delete bulletsToRemove[i];
     }
-    player->updateFromJoystick(0.0, 0.0, true);
+    // On envoie les données environ 5 fois par seconde (tous les 12 cycles de 16ms)
+    static int sendCounter = 0;
+    sendCounter++;
+
+    if (sendCounter >= 12) {
+        //int currentLevel = levelSystem->getLevel();
+
+        // Logique pour le chiffre du boss (1 à 4)
+        // Ici, tu peux mettre ta propre logique. Exemple :
+        // 1 = Pas de boss, 2 = Petit boss, 3 = Gros boss, 4 = Boss final
+        int bossStatus = 1;
+        //if (enemies.size() > 15) bossStatus = 2; // Exemple simple
+
+        //arduino->sendGameState(currentLevel, bossStatus);
+        sendCounter = 0;
+    }
+
+    arduino->sendGameState(levelSystem->getLevel(),levelSystem->getLevel(), true );
+    //player->updateFromJoystick(0.0, 0.0, true);
     // LIGNE DE TEST TEMPORAIRE :
     // On simule un mouvement vers la droite (0 rad) à pleine vitesse et un tir
     // player->updateFromJoystick(0.0, 1.0, false);
