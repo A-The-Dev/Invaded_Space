@@ -53,30 +53,49 @@ HUD::HUD(QGraphicsScene *scene, QObject *parent) : QObject(parent), scene(scene)
     levelText->setFont(font);
     levelText->setZValue(102);
     scene->addItem(levelText);
+    ultimateBackground = new QGraphicsRectItem(0, 0, 200, 10);
+    ultimateBackground->setBrush(Qt::black);
+    scene->addItem(ultimateBackground);
+
+    ultimateBar = new QGraphicsRectItem(0, 0, 0, 10);
+    ultimateBar->setBrush(Qt::cyan);
+    scene->addItem(ultimateBar);
 }
 
-void HUD::updatePosition(QPointF cameraPos)
+void HUD::updatePosition(QPointF cameraPos, QPointF playerPos)
 {
-    // Position HUD elements with minimal wiggle (lerp towards camera position)
+
     static QPointF smoothPos = cameraPos;
-    qreal smoothing = 0.45;  // Very slow follow for minimal wiggle
+    qreal smoothing = 0.45;
 
     smoothPos.setX(smoothPos.x() + (cameraPos.x() - smoothPos.x()) * smoothing);
     smoothPos.setY(smoothPos.y() + (cameraPos.y() - smoothPos.y()) * smoothing);
 
-    qreal leftX = smoothPos.x() - 400 + 20;  // 20px from left edge
-    qreal topY = smoothPos.y() - 300 + 20;   // 20px from top edge
+    qreal leftX = smoothPos.x() - 400 + 20;
+    qreal topY = smoothPos.y() - 300 + 20;
 
     healthBarBackground->setPos(leftX, topY);
     healthBarFill->setPos(leftX, topY);
     healthText->setPos(leftX + 205, topY);
 
-    // Position XP bar below health bar
     xpBarBackground->setPos(leftX, topY + 30);
     xpBarFill->setPos(leftX, topY + 30);
     levelText->setPos(leftX + 205, topY + 27);
-}
 
+
+    qreal barWidth = 60;
+    qreal barHeight = 6;
+
+    // Position it roughly 50 pixels above the player's center
+    qreal ultX = playerPos.x() - (barWidth / 2);
+    qreal ultY = playerPos.y() - 50;
+
+    ultimateBackground->setPos(ultX, ultY);
+    ultimateBackground->setRect(0, 0, barWidth, barHeight);
+
+    ultimateBar->setPos(ultX, ultY);
+
+}
 void HUD::updateHealth(int health, int maxHealth)
 {
     // Update health bar width
@@ -105,4 +124,18 @@ void HUD::updateXP(int currentXP, int xpToNextLevel)
     // Update XP bar width
     qreal xpPercent = static_cast<qreal>(currentXP) / xpToNextLevel;
     xpBarFill->setRect(0, 0, 200 * xpPercent, 15);
+}
+
+void HUD::updateUltimate(float percentage)
+{
+
+    ultimateBar->setRect(0, 0, 60 * percentage, 6);
+
+    if (percentage >= 1.0)
+    {
+        ultimateBar->setBrush(Qt::white);
+    } else
+    {
+        ultimateBar->setBrush(Qt::cyan);
+    }
 }

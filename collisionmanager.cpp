@@ -22,7 +22,9 @@ bool CollisionManager::isOffScreen(QGraphicsItem *item, QPointF cameraCenter, qr
             itemPos.y() > cameraCenter.y() + viewHeight/2 + margin);
 }
 
-void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets, QList<Enemy*> &enemies, QList<Boss*> &bosses)
+void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
+                                       QList<Enemy*> &enemies, QList<Boss*> &bosses,
+                                       QList<Ultimate*> &ultimates)
 {
     // Check bullet-enemy/boss collisions (only player bullets)
     for (int i = 0; i < bullets.size(); ++i)
@@ -132,6 +134,20 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets, 
             }
 
             emit playerHitBoss(bosses[i]);
+        }
+    }
+    for (int i = ultimates.size() - 1; i >= 0; --i) {
+        if (checkCollision(ultimates[i], player)) {
+            if (!player->isInvincible()) {
+                player->takeDamage(2); // Ultimates deal double damage
+
+                // Laser (Boss 4) doesn't disappear on hit, others do
+                if (ultimates[i]->getSpeed() > 0) {
+                    Ultimate* u = ultimates.takeAt(i);
+                    if (u->scene()) u->scene()->removeItem(u);
+                    delete u;
+                }
+            }
         }
     }
 }

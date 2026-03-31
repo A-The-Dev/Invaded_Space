@@ -46,6 +46,7 @@ void Player::keyPressEvent(QKeyEvent *event)
     if (event->key() == Qt::Key_A) aPressed = true;
     if (event->key() == Qt::Key_S) sPressed = true;
     if (event->key() == Qt::Key_D) dPressed = true;
+    if (event->key() == Qt::Key_F) fPressed = true;
 }
 
 void Player::keyReleaseEvent(QKeyEvent *event)
@@ -57,6 +58,8 @@ void Player::keyReleaseEvent(QKeyEvent *event)
     if (event->key() == Qt::Key_A) aPressed = false;
     if (event->key() == Qt::Key_S) sPressed = false;
     if (event->key() == Qt::Key_D) dPressed = false;
+    if (event->key() == Qt::Key_F) fPressed = false;
+
 }
 
 void Player::updateRotation(QPointF mousePos)

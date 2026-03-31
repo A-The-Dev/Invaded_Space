@@ -4,6 +4,7 @@
 #include <QLineF>
 #include <QRandomGenerator>
 #include <QtMath>
+#include <QDebug>
 #include "arduinomanager.h"
 
 Game::Game(QWidget *parent) : QGraphicsView(parent)
@@ -188,10 +189,10 @@ void Game::spawnBoss()
         type = Boss::Boss4;
 
     Boss *boss = new Boss(type, spawnPos);
-    connect(boss, &Boss::destroyed, this, [this, boss]() {
-        onBossDestroyed(boss);
-    });
+
+    connect(boss, &Boss::destroyed, this, [this, boss]() { onBossDestroyed(boss); });
     connect(boss, &Boss::shootBullet, this, &Game::onEnemyShoot);
+    connect(boss, &Boss::UseUltimate, this, &Game::onBossUltimate);
     scene->addItem(boss);
     bosses.append(boss);
 }
@@ -216,8 +217,53 @@ void Game::mousePressEvent(QMouseEvent *event)
 void Game::keyPressEvent(QKeyEvent *event)
 {
     player->keyPressEvent(event);
+    if (event->key() == Qt::Key_F)
+    {
+        if (player->tryUseUltimate()) {
+            triggerScreenClear();
+        }
+    }
 }
 
+void Game::triggerScreenClear()
+{
+
+    while (!enemies.isEmpty())
+    {
+        Enemy* e = enemies.takeFirst();
+
+
+        if (scene->views().first()->sceneRect().contains(e->pos()))
+        {
+
+            onEnemyDestroyed(e);
+        } else
+        {
+
+            scene->removeItem(e);
+            e->deleteLater();
+        }
+    }
+
+
+    for (Boss* b : bosses)
+    {
+        b->takeDamage(100);
+    }
+
+
+    QGraphicsRectItem* flash = new QGraphicsRectItem(scene->sceneRect());
+    flash->setBrush(Qt::white);
+    flash->setOpacity(0.5);
+    flash->setZValue(1000);
+    scene->addItem(flash);
+
+
+    QTimer::singleShot(100, [this, flash]() {
+        scene->removeItem(flash);
+        delete flash;
+    });
+}
 void Game::keyReleaseEvent(QKeyEvent *event)
 {
     player->keyReleaseEvent(event);
@@ -234,7 +280,8 @@ void Game::onEnemyDestroyed(Enemy *enemy)
     enemies.removeOne(enemy);
     scene->removeItem(enemy);
     enemy->deleteLater();
-
+    player->gainUltimateCharge(5.0); //Un ultimate par 20 enemy
+    hud->updateUltimate(player->getUltimatePercentage());
 }
 void Game::onBossDestroyed(Boss *boss)
 {
@@ -266,6 +313,7 @@ void Game::onEnemyShoot(QPointF position, qreal angle,bool boss)
             Bullet *bullet = new Bullet(position, angle, false,Bullet::Boss1,true);
             scene->addItem(bullet);
             bullets.append(bullet);
+
         }
         else if(type == Boss::Boss2)
         {
@@ -290,6 +338,54 @@ void Game::onEnemyShoot(QPointF position, qreal angle,bool boss)
 
 }
 
+void Game::onBossUltimate(QPointF position, qreal angle, bool isBoss)
+{
+    qDebug() << "Ultimate Triggered by Boss!"; // This will tell us if the signal works
+
+    Boss* senderBoss = qobject_cast<Boss*>(sender());
+    if (!senderBoss) {
+        qDebug() << "Error: Sender was not a Boss!";
+        return;
+    }
+
+
+    if (senderBoss->getType() == Boss::Boss1) {
+        // 8-Way Burst
+        for (int i = 0; i < 8; ++i) {
+            Ultimate *u = new Ultimate(position, i * 45, false, nullptr, senderBoss, true);
+            scene->addItem(u);
+            ultimates.append(u);
+        }
+    }
+    else if (senderBoss->getType() == Boss::Boss2) {
+        // The Wall: Calculate perpendicular angle in Radians
+        qreal rad = (angle + 90) * M_PI / 180.0;
+
+        for (int i = -2; i <= 2; ++i) {
+            qreal spacing = i * 60; // Increased spacing for visibility
+            QPointF wallPos = position + QPointF(qCos(rad) * spacing, qSin(rad) * spacing);
+
+            Ultimate *u = new Ultimate(wallPos, angle, false, nullptr, senderBoss, true);
+            scene->addItem(u);
+            ultimates.append(u);
+        }
+    }
+    else if (senderBoss->getType() == Boss::Boss4) {
+        // The Giant Laser
+        Ultimate *laser = new Ultimate(position, angle, false, nullptr, senderBoss, true);
+        scene->addItem(laser);
+        ultimates.append(laser);
+
+        // Laser is temporary: delete after 600ms
+        QTimer::singleShot(600, this, [this, laser]() {
+            if (ultimates.contains(laser)) {
+                ultimates.removeOne(laser);
+                scene->removeItem(laser);
+                delete laser;
+            }
+        });
+    }
+}
 void Game::onPlayerDied()
 {
     // Game over logic
@@ -348,7 +444,7 @@ void Game::updateGame()
     centerOn(cameraTarget);
 
     // Update HUD position
-    hud->updatePosition(cameraTarget);
+    hud->updatePosition(cameraTarget, player->pos());
 
     // Update space objects and remove expired ones
     QList<SpaceObject*> objectsToRemove;
@@ -383,31 +479,32 @@ void Game::updateGame()
     enemySpawnTimer++;
     if (enemySpawnTimer >= 60)  // Spawn every second
     {
-        enemySpawnTimer = 0;
-        if (enemies.size() < 0 * levelSystem->getLevel())  // Cap at 10 enemies * current level
+        if (enemies.size() < 5 * levelSystem->getLevel())  // Cap at 10 enemies * current level
         {
             spawnEnemy();
         }
     }
-    // Spawn Bosses periodically
-    bossSpawnTimer++;
-    if ( bossSpawnTimer >= 60)
-    {
-        if (bosses.size() < 1 )  // Cap at 1 boss
-        {
-            spawnBoss();
-        }
 
+    int currentLevel = levelSystem->getLevel();
+
+    if (currentLevel > 0 && currentLevel % 5 == 0) {
+        // Only spawn if we haven't spawned one for THIS level yet
+        if (bosses.isEmpty() && lastBossLevel != currentLevel) {
+            spawnBoss();
+            lastBossLevel = currentLevel; // Lock spawning for this level
+        }
     }
-
-    /*if ( levelSystem->getLevel()%5==0)
+    for (int i = ultimates.size() - 1; i >= 0; --i)
     {
-        if (bosses.size() < 1 )  // Cap at 1 boss
-        {
-            spawnBoss();
-        }
+        ultimates[i]->move();
 
-    }*/
+        // Cleanup if they go too far (except for the static Boss 4 laser)
+        if (ultimates[i]->getSpeed() > 0 && collisionManager->isOffScreen(ultimates[i], cameraTarget, 2000, 2000)) {
+            Ultimate* u = ultimates.takeAt(i);
+            scene->removeItem(u);
+            delete u;
+        }
+    }
     // Update enemies
     for (int i = 0; i < enemies.size(); ++i)
     {
@@ -418,6 +515,7 @@ void Game::updateGame()
     {
         bosses[i]->updateMovement(playerPos);
     }
+
     // Update XP orbs
     for (int i = 0; i < xpOrbs.size(); ++i)
     {
@@ -476,11 +574,12 @@ void Game::updateGame()
             }
         }
 
+
+
     }
 
     // Check collisions
-    collisionManager->checkCollisions(player, bullets, enemies,bosses);
-
+    collisionManager->checkCollisions(player, bullets, enemies, bosses, ultimates);
 
     // Update all bullets (use index-based loop to avoid detachment warning)
     QList<Bullet*> bulletsToRemove;

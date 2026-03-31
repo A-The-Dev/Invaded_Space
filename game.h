@@ -15,12 +15,14 @@
 #include "levelsystem.h"
 #include "xporb.h"
 #include "Boss.h"
+#include "ultimate.h"
 #include "arduinomanager.h"
 class Game : public QGraphicsView
 {
     Q_OBJECT
 public:
     Game(QWidget *parent = nullptr);
+
 
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -37,6 +39,7 @@ public slots:
     void onPlayerDied();
     void onLevelUp(int level);
     void onXPOrbCollected(XPOrb *orb);
+    void onBossUltimate(QPointF position, qreal angle, bool isBoss);
 
 private:
     QGraphicsScene *scene;
@@ -48,18 +51,21 @@ private:
     QList<Boss*> bosses;
     QList<XPOrb*> xpOrbs;
     CollisionManager *collisionManager;
+    QList<Ultimate*> ultimates;
     HUD *hud;
     LevelSystem *levelSystem;
     QPointF cameraTarget;
     qreal cameraSmoothing;
     int spawnTimer;
     int enemySpawnTimer;
+    int lastBossLevel = 0;
     int bossSpawnTimer;
     ArduinoManager *arduino;
 
     void spawnSpaceObject();
     void spawnEnemy();
     void spawnBoss();
+    void triggerScreenClear();
 };
 
 #endif // GAME_H
