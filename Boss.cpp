@@ -8,6 +8,7 @@
 Boss::Boss(BossType type, QPointF startPos, QGraphicsItem *parent)
     :type(type), Enemy(EnemyType::bossenemy,startPos)
 {
+    ultimateTimer = 0;
     setPos(startPos);
 
     switch(type)
@@ -46,7 +47,7 @@ Boss::Boss(BossType type, QPointF startPos, QGraphicsItem *parent)
         t.rotate(90);
         sprite = sprite.transformed(t, Qt::SmoothTransformation);
 
-        setHealth(200);
+        setHealth(500);
         setSpeed(3.0);
         setTargetPosition(startPos);
         break;
@@ -75,6 +76,11 @@ Boss::Boss(BossType type, QPointF startPos, QGraphicsItem *parent)
     }
 }
 
+void Boss::setUltimateTimer(int nouveausettimer)
+{
+    ultimateTimer = nouveausettimer;
+}
+
 void Boss::updateMovement(QPointF playerPos)
 {
     QPointF currentPos = pos();
@@ -95,8 +101,13 @@ void Boss::updateMovement(QPointF playerPos)
             setPos(currentPos.x() + dx, currentPos.y() + dy);
 
             // Rotate to face player
-            setAngle( qAtan2(dy, dx) * 45 / M_PI);
+            setAngle( qAtan2(dy, dx) * 180 / M_PI);
             setRotation(getAngle());
+        }
+        setUltimateTimer(getUltimateTimer()+1);
+        if (ultimateTimer >= 300) {
+            emit UseUltimate(this->pos(), this->rotation(), true);
+            ultimateTimer = 0; // Reset the timer
         }
         break;
     }
@@ -126,7 +137,7 @@ void Boss::updateMovement(QPointF playerPos)
         }
 
         // Always face player
-        setAngle(qAtan2(playerPos.y() - currentPos.y(), playerPos.x() - currentPos.x()) * 150 / M_PI);
+        setAngle(qAtan2(playerPos.y() - currentPos.y(), playerPos.x() - currentPos.x()) * 180 / M_PI);
         setRotation(getAngle());
 
         setShootTimer(getShootTimer()+1);
@@ -134,6 +145,11 @@ void Boss::updateMovement(QPointF playerPos)
         {
             setShootTimer(0);
             emit shootBullet(currentPos, getAngle(), true);
+        }
+        setUltimateTimer(getUltimateTimer()+1);
+        if (ultimateTimer >= 300) {
+            emit UseUltimate(this->pos(), this->rotation(), true);
+            ultimateTimer = 0; // Reset the timer
         }
         break;
     }
@@ -172,7 +188,14 @@ void Boss::updateMovement(QPointF playerPos)
             setShootTimer(0);
             emit shootBullet(currentPos, getAngle(), true);
         }
+        setUltimateTimer(getUltimateTimer()+1);
+        if (ultimateTimer >= 300) {
+            emit UseUltimate(this->pos(), this->rotation(), true);
+            ultimateTimer = 0; // Reset the timer
+        }
         break;
+
+
     }
     }
 

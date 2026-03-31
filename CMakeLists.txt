@@ -35,6 +35,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         Boss.h
         Boss.cpp
         Boss.cpp
+        ultimate.h ultimate.cpp
 
 
     )

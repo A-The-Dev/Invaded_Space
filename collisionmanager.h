@@ -7,14 +7,16 @@
 #include "bullet.h"
 #include "enemy.h"
 #include "Boss.h"
+#include "ultimate.h"
+
 class CollisionManager : public QObject
 {
     Q_OBJECT
 public:
     CollisionManager(QObject *parent = nullptr);
 
-    void checkCollisions(Player *player, QList<Bullet*> &bullets, QList<Enemy*> &enemies,QList<Boss*> &bosses );
     bool isOffScreen(QGraphicsItem *item, QPointF cameraCenter, qreal viewWidth, qreal viewHeight);
+    void checkCollisions(Player *player, QList<Bullet*> &bullets, QList<Enemy*> &enemies, QList<Boss*> &bosses, QList<Ultimate*> &ultimates);
 
 signals:
     void enemyDestroyed(Enemy *enemy);
@@ -24,6 +26,7 @@ signals:
 
 private:
     bool checkCollision(QGraphicsItem *item1, QGraphicsItem *item2);
+
 };
 
 #endif // COLLISIONMANAGER_H

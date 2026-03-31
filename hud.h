@@ -6,14 +6,15 @@
 #include <QGraphicsScene>
 #include <QObject>
 
+
 class HUD : public QObject
 {
     Q_OBJECT
 public:
     HUD(QGraphicsScene *scene, QObject *parent = nullptr);
 
-    void updatePosition(QPointF cameraPos);
-
+    void updatePosition(QPointF cameraPos, QPointF playerPos);
+    void updateUltimate(float percentage);
 public slots:
     void updateHealth(int health, int maxHealth);
     void updateLevel(int level);
@@ -28,6 +29,8 @@ private:
     QGraphicsTextItem *levelText;
     QGraphicsScene *scene;
     QPointF smoothPos;
+    QGraphicsRectItem* ultimateBar;
+    QGraphicsRectItem* ultimateBackground;
 };
 
 #endif // HUD_H
