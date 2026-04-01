@@ -58,10 +58,9 @@ Boss::Boss(BossType type, QPointF startPos, QGraphicsItem *parent)
         setZValue(100);
 
         sprite = QPixmap("../../resources/DeathStarBoss.png");
-        if (sprite.isNull()) {
+        if (sprite.isNull())
+        {
             qDebug() << "Failed to load DeathStarBoss.png";
-        } else {
-            qDebug() << "Loaded DeathStarBoss.png";
         }
 
         QTransform t;

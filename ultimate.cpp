@@ -5,10 +5,10 @@
 Ultimate::Ultimate(QPointF startPos, qreal angle, bool fromPlayer, Player* player, Boss* boss, bool fromBoss, QGraphicsItem *parent)
     : QGraphicsEllipseItem(parent), fromPlayer(fromPlayer), fromBoss(fromBoss), angle(angle)
 {
-    // Basic setup
+
     setPos(startPos);
     setRotation(angle);
-    setZValue(101); // Ensure ultimates appear above standard bullets
+    setZValue(101);
 
     if (fromBoss && boss) {
         switch(boss->getType()) {
@@ -27,8 +27,9 @@ Ultimate::Ultimate(QPointF startPos, qreal angle, bool fromPlayer, Player* playe
             this->speed = 0;
             break;
         }
-    } else if (fromPlayer) {
-        // Optional: Player ultimate logic
+    }
+    else if (fromPlayer)
+    {
         setRect(-10, -10, 20, 20);
         this->speed = 15.0;
     }
@@ -58,7 +59,8 @@ void Ultimate::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, 
 
     painter->setRenderHint(QPainter::Antialiasing);
 
-    if (fromBoss) {
+    if (fromBoss)
+    {
         // Boss 4
         if (rect().width() > 500) {
             QLinearGradient beamGrad(rect().topLeft(), rect().bottomLeft());
