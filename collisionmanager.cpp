@@ -26,7 +26,6 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
                                        QList<Enemy*> &enemies, QList<Boss*> &bosses,
                                        QList<Ultimate*> &ultimates)
 {
-    // Check bullet-enemy/boss collisions (only player bullets)
     for (int i = 0; i < bullets.size(); ++i)
     {
         Bullet* b = bullets[i];
@@ -47,14 +46,14 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
                 delete b;
 
                 removed = true;
-                --i;               // so outer loop stays correct
+                --i;
                 break;
             }
         }
 
-        if (removed) continue;     // IMPORTANT: don't check bosses with a deleted bullet
+        if (removed) continue;
 
-        // vs bosses
+
         for (int j = 0; j < bosses.size(); ++j)
         {
             if (checkCollision(b, bosses[j]))
@@ -70,7 +69,7 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
             }
         }
     }
-    // Check enemy bullet-player collisions
+
     for (int i = 0; i < bullets.size(); ++i)
     {
         if (bullets[i]->isFromPlayer())
@@ -78,10 +77,10 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
 
         if (checkCollision(bullets[i], player))
         {
-            // Damage player
+
             player->takeDamage(1);
 
-            // Remove bullet
+
             Bullet *bullet = bullets[i];
             bullets.removeAt(i);
             if (bullet->scene())
@@ -91,20 +90,20 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
         }
     }
 
-    // Check player-enemy collisions with pushback
+
     for (int i = 0; i < enemies.size(); ++i)
     {
         if (checkCollision(player, enemies[i]))
         {
-            // Calculate push direction (away from enemy)
+
             QPointF playerPos = player->pos();
             QPointF enemyPos = enemies[i]->pos();
             QPointF pushDir = playerPos - enemyPos;
 
-            // Push player back
+
             player->pushBack(pushDir, 8.0);
 
-            // Deal damage if not invincible
+
             if (!player->isInvincible())
             {
                 player->takeDamage(1);
@@ -113,20 +112,20 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
             emit playerHitEnemy(enemies[i]);
         }
     }
-    // Check player-enemy collisions with pushback
+
     for (int i = 0; i < bosses.size(); ++i)
     {
         if (checkCollision(player, bosses[i]))
         {
-            // Calculate push direction (away from enemy)
+
             QPointF playerPos = player->pos();
             QPointF BossPos = bosses[i]->pos();
             QPointF pushDir = playerPos - BossPos;
 
-            // Push player back
+
             player->pushBack(pushDir, 8.0);
 
-            // Deal damage if not invincible
+
             if (!player->isInvincible())
             {
                 player->takeDamage(1);
@@ -135,13 +134,16 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
             emit playerHitBoss(bosses[i]);
         }
     }
-    for (int i = ultimates.size() - 1; i >= 0; --i) {
-        if (checkCollision(ultimates[i], player)) {
-            if (!player->isInvincible()) {
-                player->takeDamage(2); // Ultimates deal double damage
+    for (int i = ultimates.size() - 1; i >= 0; --i)
+    {
+        if (checkCollision(ultimates[i], player))
+        {
+            if (!player->isInvincible())
+            {
+                player->takeDamage(2);
 
-                // Laser (Boss 4) doesn't disappear on hit, others do
-                if (ultimates[i]->getSpeed() > 0) {
+                if (ultimates[i]->getSpeed() > 0)
+                {
                     Ultimate* u = ultimates.takeAt(i);
                     if (u->scene()) u->scene()->removeItem(u);
                     delete u;

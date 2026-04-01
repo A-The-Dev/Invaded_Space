@@ -232,17 +232,25 @@ void Game::triggerScreenClear()
     }
 
 
-    QGraphicsRectItem* flash = new QGraphicsRectItem(scene->sceneRect());
-    flash->setBrush(Qt::white);
-    flash->setOpacity(0.5);
-    flash->setZValue(1000);
+    QPixmap ultImg("../../resources/Léanuke.png");
+    QGraphicsPixmapItem* flash = new QGraphicsPixmapItem(ultImg);
+
+
+    flash->setOffset(-ultImg.width()/2, -ultImg.height()/2);
+    flash->setPos(player->pos());
+
+    flash->setZValue(2000);
+    flash->setOpacity(0.8);
+
     scene->addItem(flash);
 
-
-    QTimer::singleShot(100, [this, flash]() {
+    // Fade it out or just remove it
+    QTimer::singleShot(150, [this, flash]() {
         scene->removeItem(flash);
         delete flash;
     });
+
+
 }
 void Game::keyReleaseEvent(QKeyEvent *event)
 {
@@ -320,13 +328,9 @@ void Game::onEnemyShoot(QPointF position, qreal angle,bool boss)
 
 void Game::onBossUltimate(QPointF position, qreal angle, bool isBoss)
 {
-    qDebug() << "Ultimate Triggered by Boss!"; // This will tell us if the signal works
 
     Boss* senderBoss = qobject_cast<Boss*>(sender());
-    if (!senderBoss) {
-        qDebug() << "Error: Sender was not a Boss!";
-        return;
-    }
+
 
 
     if (senderBoss->getType() == Boss::Boss1) {
