@@ -65,6 +65,7 @@ signals:
 private:
     QPixmap sprite;
     bool wPressed, aPressed, sPressed, dPressed,fPressed;
+    bool wPressed, aPressed, sPressed, dPressed,fPressed;
     qreal angle;
     qreal speed;
     int health;

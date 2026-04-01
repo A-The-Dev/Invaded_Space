@@ -24,6 +24,7 @@ public:
     Game(QWidget *parent = nullptr);
 
 
+
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
@@ -36,9 +37,12 @@ public slots:
     void onPlayerHit(Enemy *enemy);
     void onBossDestroyed(Boss *boss);
     void onEnemyShoot(QPointF position, qreal angle,bool boss);
+    void onBossDestroyed(Boss *boss);
+    void onEnemyShoot(QPointF position, qreal angle,bool boss);
     void onPlayerDied();
     void onLevelUp(int level);
     void onXPOrbCollected(XPOrb *orb);
+    void onBossUltimate(QPointF position, qreal angle, bool isBoss);
     void onBossUltimate(QPointF position, qreal angle, bool isBoss);
 
 private:
@@ -49,8 +53,10 @@ private:
     QList<SpaceObject*> spaceObjects;
     QList<Enemy*> enemies;
     QList<Boss*> bosses;
+    QList<Boss*> bosses;
     QList<XPOrb*> xpOrbs;
     CollisionManager *collisionManager;
+    QList<Ultimate*> ultimates;
     QList<Ultimate*> ultimates;
     HUD *hud;
     LevelSystem *levelSystem;
@@ -64,6 +70,8 @@ private:
 
     void spawnSpaceObject();
     void spawnEnemy();
+    void spawnBoss();
+    void triggerScreenClear();
     void spawnBoss();
     void triggerScreenClear();
 };

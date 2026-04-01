@@ -5,6 +5,8 @@
 #include <QObject>
 #include <QPainter>
 #include <QPixmap>
+#include <QPainter>
+#include <QPixmap>
 
 class Bullet : public QObject, public QGraphicsEllipseItem
 {
@@ -13,6 +15,7 @@ public:
     enum BossType { Boss1, Boss2, Boss4 };
     Bullet( QPointF startPos, qreal angle, bool fromPlayer = true,BossType type = Boss4, bool fromBoss = false,int damage = 1, QGraphicsItem *parent = nullptr);
     bool isFromPlayer() const { return fromPlayer; }
+    qreal getSpeed();
     qreal getSpeed();
 
 public slots:

@@ -58,10 +58,13 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     spawnTimer = 0;
     enemySpawnTimer = 0;
     bossSpawnTimer = 0;
+    bossSpawnTimer = 0;
 
     // Create collision manager
     collisionManager = new CollisionManager(this);
     connect(collisionManager, &CollisionManager::enemyDestroyed, this, &Game::onEnemyDestroyed);
+    connect(collisionManager, &CollisionManager::playerHitEnemy, this, &Game::onPlayerHit);
+    connect(collisionManager, &CollisionManager::playerHitBoss, this, &Game::onPlayerHit);
     connect(collisionManager, &CollisionManager::playerHitEnemy, this, &Game::onPlayerHit);
     connect(collisionManager, &CollisionManager::playerHitBoss, this, &Game::onPlayerHit);
     // Connect player signals
@@ -198,6 +201,41 @@ void Game::spawnBoss()
 }
 
 
+void Game::spawnBoss()
+{
+    QRandomGenerator *rng = QRandomGenerator::global();
+
+    // Spawn away from player
+    QPointF playerPos = player->pos();
+    qreal angle = rng->bounded(360) * M_PI / 180;
+    qreal distance = rng->bounded(400, 700);
+
+    QPointF spawnPos(
+        playerPos.x() + qCos(angle) * distance,
+        playerPos.y() + qSin(angle) * distance
+        );
+
+    // Random boss type
+    int typeRoll = rng->bounded(100);
+    Boss::BossType type;
+
+    if (typeRoll < 33)
+        type = Boss::Boss1;
+    else if (typeRoll < 66)
+        type = Boss::Boss2;
+    else
+        type = Boss::Boss4;
+
+    Boss *boss = new Boss(type, spawnPos);
+
+    connect(boss, &Boss::destroyed, this, [this, boss]() { onBossDestroyed(boss); });
+    connect(boss, &Boss::shootBullet, this, &Game::onEnemyShoot);
+    connect(boss, &Boss::UseUltimate, this, &Game::onBossUltimate);
+    scene->addItem(boss);
+    bosses.append(boss);
+}
+
+
 void Game::mouseMoveEvent(QMouseEvent *event)
 {
     QPointF scenePos = mapToScene(event->pos());
@@ -217,6 +255,61 @@ void Game::mousePressEvent(QMouseEvent *event)
 void Game::keyPressEvent(QKeyEvent *event)
 {
     player->keyPressEvent(event);
+    if (event->key() == Qt::Key_F)
+    {
+        if (player->tryUseUltimate()) {
+            triggerScreenClear();
+        }
+    }
+}
+
+void Game::triggerScreenClear()
+{
+
+    while (!enemies.isEmpty())
+    {
+        Enemy* e = enemies.takeFirst();
+
+
+        if (scene->views().first()->sceneRect().contains(e->pos()))
+        {
+
+            onEnemyDestroyed(e);
+        } else
+        {
+
+            scene->removeItem(e);
+            e->deleteLater();
+        }
+    }
+
+
+    for (Boss* b : bosses)
+    {
+        b->takeDamage(100);
+    }
+
+
+    QPixmap ultImg("../../resources/Léanuke.png");
+    QGraphicsPixmapItem* flash = new QGraphicsPixmapItem(ultImg);
+
+
+    flash->setOffset(-ultImg.width()/2, -ultImg.height()/2);
+    flash->setPos(player->pos());
+
+    flash->setZValue(2000);
+    flash->setOpacity(0.8);
+
+    scene->addItem(flash);
+
+    // Fade it out or just remove it
+    QTimer::singleShot(150, [this, flash]() {
+        scene->removeItem(flash);
+        delete flash;
+    });
+
+
+}
     if (event->key() == Qt::Key_F)
     {
         if (player->tryUseUltimate()) {
@@ -302,6 +395,20 @@ void Game::onBossDestroyed(Boss *boss)
     bosses.removeOne(boss);
     scene->removeItem(boss);
     boss->deleteLater();
+    player->gainUltimateCharge(5.0); //Un ultimate par 20 enemy
+    hud->updateUltimate(player->getUltimatePercentage());
+}
+void Game::onBossDestroyed(Boss *boss)
+{
+    // Spawn XP orb at enemy position
+    int xpValue = 500;  // Base XP value
+    XPOrb *orb = new XPOrb(boss->pos(), xpValue);
+    scene->addItem(orb);
+    xpOrbs.append(orb);
+
+    bosses.removeOne(boss);
+    scene->removeItem(boss);
+    boss->deleteLater();
 }
 
 void Game::onPlayerHit(Enemy *enemy)
@@ -344,6 +451,85 @@ void Game::onEnemyShoot(QPointF position, qreal angle,bool boss)
         bullets.append(bullet);
     }
 
+void Game::onEnemyShoot(QPointF position, qreal angle,bool boss)
+{
+    if( boss == true)
+    {   
+        Boss::BossType type = bosses[0]->getType();
+        if( type == Boss::Boss1)
+        {
+            Bullet *bullet = new Bullet(position, angle, false,Bullet::Boss1,true);
+            scene->addItem(bullet);
+            bullets.append(bullet);
+
+        }
+        else if(type == Boss::Boss2)
+        {
+            Bullet *bullet = new Bullet(position, angle, false,Bullet::Boss2,true);
+            scene->addItem(bullet);
+            bullets.append(bullet);
+        }
+        else if(type == Boss::Boss4)
+        {
+            Bullet *bullet = new Bullet(position, angle, false,Bullet::Boss4,true);
+            scene->addItem(bullet);
+            bullets.append(bullet);
+
+        }
+    }
+    else
+    {
+        Bullet *bullet = new Bullet(position, angle, false);  // false = enemy bullet
+        scene->addItem(bullet);
+        bullets.append(bullet);
+    }
+
+}
+
+void Game::onBossUltimate(QPointF position, qreal angle, bool isBoss)
+{
+
+    Boss* senderBoss = qobject_cast<Boss*>(sender());
+
+
+
+    if (senderBoss->getType() == Boss::Boss1) {
+        // 8-Way Burst
+        for (int i = 0; i < 8; ++i) {
+            Ultimate *u = new Ultimate(position, i * 45, false, nullptr, senderBoss, true);
+            scene->addItem(u);
+            ultimates.append(u);
+        }
+    }
+    else if (senderBoss->getType() == Boss::Boss2) {
+        // The Wall: Calculate perpendicular angle in Radians
+        qreal rad = (angle + 90) * M_PI / 180.0;
+
+        for (int i = -2; i <= 2; ++i) {
+            qreal spacing = i * 60; // Increased spacing for visibility
+            QPointF wallPos = position + QPointF(qCos(rad) * spacing, qSin(rad) * spacing);
+
+            Ultimate *u = new Ultimate(wallPos, angle, false, nullptr, senderBoss, true);
+            scene->addItem(u);
+            ultimates.append(u);
+        }
+    }
+    else if (senderBoss->getType() == Boss::Boss4) {
+        // The Giant Laser
+        Ultimate *laser = new Ultimate(position, angle, false, nullptr, senderBoss, true);
+        scene->addItem(laser);
+        ultimates.append(laser);
+
+        // Laser is temporary: delete after 600ms
+        QTimer::singleShot(600, this, [this, laser]() {
+            if (ultimates.contains(laser)) {
+                ultimates.removeOne(laser);
+                scene->removeItem(laser);
+                delete laser;
+            }
+        });
+    }
+}
 }
 
 void Game::onBossUltimate(QPointF position, qreal angle, bool isBoss)
@@ -449,6 +635,7 @@ void Game::updateGame()
 
     // Update HUD position
     hud->updatePosition(cameraTarget, player->pos());
+    hud->updatePosition(cameraTarget, player->pos());
 
     // Update space objects and remove expired ones
     QList<SpaceObject*> objectsToRemove;
@@ -484,6 +671,7 @@ void Game::updateGame()
     if (enemySpawnTimer >= 60)  // Spawn every second
     {
         if (enemies.size() < 5 * levelSystem->getLevel())  // Cap at 10 enemies * current level
+        if (enemies.size() < 5 * levelSystem->getLevel())  // Cap at 10 enemies * current level
         {
             spawnEnemy();
         }
@@ -509,10 +697,35 @@ void Game::updateGame()
             delete u;
         }
     }
+    int currentLevel = levelSystem->getLevel();
+
+    if (currentLevel > 0 && currentLevel % 5 == 0) {
+        // Only spawn if we haven't spawned one for THIS level yet
+        if (bosses.isEmpty() && lastBossLevel != currentLevel) {
+            spawnBoss();
+            lastBossLevel = currentLevel; // Lock spawning for this level
+        }
+    }
+    for (int i = ultimates.size() - 1; i >= 0; --i)
+    {
+        ultimates[i]->move();
+
+        // Cleanup if they go too far (except for the static Boss 4 laser)
+        if (ultimates[i]->getSpeed() > 0 && collisionManager->isOffScreen(ultimates[i], cameraTarget, 2000, 2000)) {
+            Ultimate* u = ultimates.takeAt(i);
+            scene->removeItem(u);
+            delete u;
+        }
+    }
     // Update enemies
     for (int i = 0; i < enemies.size(); ++i)
     {
         enemies[i]->updateMovement(playerPos);
+    }
+    // Update bosses
+    for (int i = 0; i < bosses.size(); ++i)
+    {
+        bosses[i]->updateMovement(playerPos);
     }
     // Update bosses
     for (int i = 0; i < bosses.size(); ++i)
@@ -575,14 +788,19 @@ void Game::updateGame()
                         );
                 }
 
+
             }
         }
+
+
+
 
 
 
     }
 
     // Check collisions
+    collisionManager->checkCollisions(player, bullets, enemies, bosses, ultimates);
     collisionManager->checkCollisions(player, bullets, enemies, bosses, ultimates);
 
     // Update all bullets (use index-based loop to avoid detachment warning)
