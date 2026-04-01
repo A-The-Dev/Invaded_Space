@@ -10,7 +10,7 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
 {
     setRect(-30, -30, 60, 60);
 
-    sprite = QPixmap("../../resources/spaceship.png"); // use your resource path
+    sprite = QPixmap("./resources/spaceship.png"); // use your resource path
     if (sprite.isNull()) {
         qDebug() << "Failed to load spaceship.png";
     }

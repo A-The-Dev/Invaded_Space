@@ -37,7 +37,7 @@ Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer, BossType type, bo
             setRect(-15, -15, 100, 40);
             setZValue(100);
 
-            sprite = QPixmap("../../resources/TrumpIceBullet.png");
+            sprite = QPixmap("./resources/TrumpIceBullet.png");
 
             QTransform t;
 
@@ -76,7 +76,7 @@ Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer, BossType type, bo
             setRect(-15, -15, 100, 40);
             setZValue(100);
 
-            sprite = QPixmap("../../resources/TrumpIceBullet.png");
+            sprite = QPixmap("./resources/TrumpIceBullet.png");
 
             QTransform t;
 

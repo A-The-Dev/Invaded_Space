@@ -35,7 +35,7 @@ BulletType::BulletType(QPointF startPos, qreal angle,BulletTypes type, QGraphics
         setRect(-15, -15, 100, 40);
         setZValue(100);
 
-        sprite = QPixmap("../../resources/TrumpIceBullet.png");
+        sprite = QPixmap("./resources/TrumpIceBullet.png");
 
 
 

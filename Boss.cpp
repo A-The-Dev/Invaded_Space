@@ -18,7 +18,7 @@ Boss::Boss(BossType type, QPointF startPos, QGraphicsItem *parent)
         setRect(-100, -200, 100, 300);
         setZValue(100);
 
-        sprite = QPixmap("../../resources/DragonBossChaser.png");
+        sprite = QPixmap("./resources/DragonBossChaser.png");
         if (sprite.isNull())
         {
             qDebug() << "Failed to load :/resources/DragonBossChaser.png";
@@ -37,7 +37,7 @@ Boss::Boss(BossType type, QPointF startPos, QGraphicsItem *parent)
         setRect(-15, -15, 300, 300);
         setZValue(100);
 
-        sprite = QPixmap("../../resources/trump.png");
+        sprite = QPixmap("./resources/trump.png");
         if (sprite.isNull())
         {
             qDebug() << "Failed to load :/resources/DragonBossChaser.png";
@@ -57,7 +57,7 @@ Boss::Boss(BossType type, QPointF startPos, QGraphicsItem *parent)
         setRect(-300, -300, 600, 600);
         setZValue(100);
 
-        sprite = QPixmap("../../resources/DeathStarBoss.png");
+        sprite = QPixmap("./resources/DeathStarBoss.png");
         if (sprite.isNull())
         {
             qDebug() << "Failed to load DeathStarBoss.png";

@@ -12,8 +12,7 @@ class BulletType:  public QObject, public QGraphicsEllipseItem
 public:
     enum BulletTypes{enemy,player,Boss1,Boss2,Boss4};
     //make a way to directly call the bullet type you want
-    BulletType(QPointF startPos, qreal angle,BulletTypes type =BulletType::Boss2, QGraphicsItem *parent);
-    BulletType(QPointF startPos, qreal angle,BulletTypes type =BulletType::Boss4, QGraphicsItem *parent);
+    BulletType(QPointF startPos, qreal angle, BulletTypes type = BulletType::Boss2, QGraphicsItem *parent = nullptr);
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);

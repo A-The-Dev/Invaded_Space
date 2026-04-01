@@ -251,7 +251,7 @@ void Game::triggerScreenClear()
     }
 
 
-    QPixmap ultImg("../../resources/Léanuke.png");
+    QPixmap ultImg("./resources/Léanuke.png");
     QGraphicsPixmapItem* flash = new QGraphicsPixmapItem(ultImg);
 
 
@@ -279,8 +279,8 @@ void Game::keyReleaseEvent(QKeyEvent *event)
 void Game::onEnemyDestroyed(Enemy *enemy)
 {
     // Spawn XP orb at enemy position
-    int xpValue = 10;  // Base XP value
-    XPOrb *orb = new XPOrb(enemy->pos(), 20);
+    int xpValue = 20;  // Base XP value
+    XPOrb *orb = new XPOrb(enemy->pos(), xpValue);
     scene->addItem(orb);
     xpOrbs.append(orb);
 
