@@ -4,7 +4,6 @@
 #include <QtMath>
 #include <QTimer>
 #include <QDebug>
-#include <cmath>
 #include "bullet.h"
 
 Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
@@ -25,19 +24,17 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
     wPressed = aPressed = sPressed = dPressed = false;
     angle = 0;
     speed = 5.0;
-    health = 1000;
-    maxHealth = 10;
+    health = 20;
+    maxHealth = 20;
     knockbackVelocity = QPointF(0, 0);
     invincibilityFrames = 0;
     lastShotTimer.start();
+    attackDamage = 1;
 }
 
 void Player::keyPressEvent(QKeyEvent *event)
 {
     if (useJoystick){
-        return;
-    }
-    if (this->useJoystick) {
         qDebug() << "BLOQUÉ !";
         return;
     }
@@ -154,6 +151,22 @@ void Player::updateInvincibility()
     }
 }
 
+void Player::gainUltimateCharge(float amount)
+{
+    ultimateCharge = qMin(maxUltimateCharge, ultimateCharge + amount);
+    if (ultimateCharge >= maxUltimateCharge) isUltimateReady = true;
+}
+
+bool Player::tryUseUltimate()
+{
+    if (isUltimateReady) {
+        ultimateCharge = 0;
+        isUltimateReady = false;
+        return true;
+    }
+    return false;
+}
+
 void Player::pushBack(QPointF direction, qreal force)
 {
     // Normalize direction and apply force
@@ -224,7 +237,7 @@ void Player::updateFromJoystick(double axisX, double axisY, bool tir)
 
 void Player::shoot() {
     // On utilise pos() pour la position et l'angle actuel du vaisseau
-    Bullet *bullet = new Bullet(this->pos(), this->angle, true, this->getAttackDamage());
+    Bullet *bullet = new Bullet(this->pos(), this->angle);
 
     emit bulletFired(bullet);
 }

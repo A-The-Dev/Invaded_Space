@@ -4,22 +4,20 @@
 #include <QPen>
 #include <QRadialGradient>
 
-Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer,BossType type , bool fromBoss ,int damage,  QGraphicsItem *parent)
-    : QGraphicsEllipseItem(parent), fromPlayer(fromPlayer), damage(damage)
+Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer, BossType type, bool fromBoss,  QGraphicsItem *parent)
+    : QGraphicsEllipseItem(parent), fromPlayer(fromPlayer)
 {
     // Create a perfect circle
     qreal radius = 4;
     this->type = type;
-    this->type = type;
+    setDamage(1);
 
     // Create glowing bullet effect with radial gradient centered at (0, 0)
-    QLinearGradient linearGrad(QPointF(100, 100), QPointF(200, 200));
     QLinearGradient linearGrad(QPointF(100, 100), QPointF(200, 200));
 
     if (fromPlayer)
     {
         // Player bullets: Yellow/Orange/Red
-        setRect(-radius, -radius, radius * 2, radius * 2);
         setRect(-radius, -radius, radius * 2, radius * 2);
         setPen(QPen(QColor(255, 200, 0), 1));
         this->angle = angle;
@@ -63,8 +61,6 @@ Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer,BossType type , bo
             this->angle = angle;
             this->speed = 25.0;
         }
-        this->angle = angle;
-        this->speed = 10.0;
     }
     else if(fromBoss)
     {
@@ -109,22 +105,14 @@ Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer,BossType type , bo
     {
         // Enemy bullets: Purple/Magenta
         setRect(-radius, -radius, radius * 2, radius * 2);
-        setRect(-radius, -radius, radius * 2, radius * 2);
         setPen(QPen(QColor(200, 100, 200), 1));
-        this->angle = angle;
-        this->speed = 10.0;
         this->angle = angle;
         this->speed = 10.0;
     }
 
     setBrush(QBrush(linearGrad));
-    setBrush(QBrush(linearGrad));
     setPos(startPos);
     setRotation(0);
-
-
-
-
 }
 
 void Bullet::move()
@@ -151,45 +139,6 @@ void Bullet::move()
         setPos(currentPos.x(), -halfHeight);
     else if (currentPos.y() < -halfHeight)
         setPos(currentPos.x(), halfHeight);
-}
-
-qreal Bullet::getSpeed()
-{
-    return speed;
-}
-
-void Bullet::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
-{
-    Q_UNUSED(option);
-    Q_UNUSED(widget);
-
-    painter->setRenderHint(QPainter::Antialiasing, true);
-    painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
-
-    if (this->type == Boss2)
-    {
-        //Si boss 2
-        QPainterPath path;
-        path.addEllipse(rect());
-        painter->setClipPath(path);
-
-        if (!sprite.isNull()) {
-            painter->drawPixmap(rect().toRect(), sprite);
-        } else {
-            // Si image ne load pas bien
-            painter->setBrush(Qt::red);
-            painter->setPen(QPen(Qt::white, 3));
-            painter->drawEllipse(rect());
-        }
-    }
-    else
-    {
-        //fait les bullet normal
-        painter->setPen(this->pen());
-        painter->setBrush(this->brush());
-
-        painter->drawEllipse(rect());
-    }
 }
 
 qreal Bullet::getSpeed()

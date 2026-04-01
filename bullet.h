@@ -13,10 +13,10 @@ class Bullet : public QObject, public QGraphicsEllipseItem
     Q_OBJECT
 public:
     enum BossType { Boss1, Boss2, Boss4 };
-    Bullet( QPointF startPos, qreal angle, bool fromPlayer = true,BossType type = Boss4, bool fromBoss = false,int damage = 1, QGraphicsItem *parent = nullptr);
+    Bullet( QPointF startPos, qreal angle, bool fromPlayer = true,BossType type = Boss4, bool fromBoss = false, QGraphicsItem *parent = nullptr);
     bool isFromPlayer() const { return fromPlayer; }
     qreal getSpeed();
-    qreal getSpeed();
+    void setDamage(int damage = 1) {this->damage = damage;}
 
 public slots:
     void move();

@@ -30,22 +30,9 @@ public:
     void pushBack(QPointF direction, qreal force);
     bool isInvincible() const { return invincibilityFrames > 0; }
     void updateInvincibility();
-    void gainUltimateCharge(float amount)
-    {
-        ultimateCharge = qMin(maxUltimateCharge, ultimateCharge + amount);
-        if (ultimateCharge >= maxUltimateCharge) isUltimateReady = true;
-    }
+    void gainUltimateCharge(float amount);
     float getUltimatePercentage() const { return ultimateCharge / maxUltimateCharge; }
-
-    bool tryUseUltimate()
-    {
-        if (isUltimateReady) {
-            ultimateCharge = 0;
-            isUltimateReady = false;
-            return true;
-        }
-        return false;
-    }
+    bool tryUseUltimate();
     int getAttackDamage() const { return attackDamage; }
     void setAttackDamage(int val) { attackDamage = val; }
     //void updateFromJoystick(double angle, double vitesse, bool tir);
@@ -64,7 +51,6 @@ signals:
 
 private:
     QPixmap sprite;
-    bool wPressed, aPressed, sPressed, dPressed,fPressed;
     bool wPressed, aPressed, sPressed, dPressed,fPressed;
     qreal angle;
     qreal speed;
