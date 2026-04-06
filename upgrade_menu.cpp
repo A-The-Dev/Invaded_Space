@@ -11,7 +11,7 @@ UpgradeMenu::UpgradeMenu(QWidget *parent) : QDialog(parent)
     title->setAlignment(Qt::AlignCenter);
     layout->addWidget(title);
 
-    QPushButton *btnSpeed = new QPushButton(" Vitesse (+0.5)", this);
+    QPushButton *btnSpeed = new QPushButton(" Vitesse (+0.4)", this);
     QPushButton *btnDamage = new QPushButton(" Dégâts (+1)", this);
     QPushButton *btnHealth = new QPushButton(" Vie Max (+2)", this);
 

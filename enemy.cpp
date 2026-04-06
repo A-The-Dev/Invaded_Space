@@ -238,3 +238,30 @@ void Enemy::setTargetPosition(QPointF TargetPosition)
 {
     targetPos = TargetPosition;
 }
+
+void Enemy::idleUpdate()
+{
+    // Keep only very cheap state progression so large numbers of off-screen enemies
+    // don't cost much CPU. Timers advance slowly so behavior feels continuous when they
+    // come back into range. Avoid any QGraphics calls (setPos/setRotation).
+    if (wanderTimer < INT_MAX - 1000) wanderTimer += 1;
+    if (shootTimer < INT_MAX - 1000) shootTimer += 1;
+
+    // Occasionally change targetPos for wanderers but without moving them:
+    // This keeps behavior consistent without issuing setPos each frame.
+    if (type == Wanderer && (wanderTimer % 600 == 0))
+    {
+        QRandomGenerator *rng = QRandomGenerator::global();
+        targetPos = QPointF(
+            pos().x() + rng->bounded(-200, 200),
+            pos().y() + rng->bounded(-200, 200)
+            );
+    }
+
+    // For Shooters, keep shootTimer increasing so they will fire soon after re-activation.
+    if (type == Shooter)
+    {
+        // clamp shootTimer to values consistent with updateMovement's expectations
+        if (shootTimer > 1000000) shootTimer = 1000000;
+    }
+}

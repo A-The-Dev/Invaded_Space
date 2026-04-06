@@ -14,7 +14,8 @@ public:
     Enemy(EnemyType type, QPointF startPos, QGraphicsItem *parent = nullptr);
 
     void updateMovement(QPointF playerPos);
-//les get
+    void idleUpdate();
+
     EnemyType getType() const { return type; }
     int getHealth() const { return health; }
     qreal getSpeed() const {return speed; }
@@ -22,9 +23,9 @@ public:
     int getShootTimer() const {return shootTimer;}
     int getWanderTimer() const {return wanderTimer;}
     QPointF getTargetPosition() const {return targetPos;}
-// damage
+
     void takeDamage(int damage);
-//les set
+
     void setHealth(int nouveauHealth);
     void setSpeed(qreal nouveauspeed);
     void setShootTimer(int nouveausettimer);

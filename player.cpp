@@ -5,6 +5,19 @@
 #include <QTimer>
 #include <QDebug>
 #include "bullet.h"
+#include "enemy.h"
+#include "Boss.h"
+#include <limits>
+
+namespace AngleUtils {
+    // normalize difference to [-180,180)
+    static qreal AngleDelta(qreal fromDeg, qreal toDeg) {
+        qreal diff = toDeg - fromDeg;
+        while (diff < -180.0) diff += 360.0;
+        while (diff >= 180.0) diff -= 360.0;
+        return diff;
+    }
+}
 
 Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
 {
@@ -23,13 +36,25 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
 
     wPressed = aPressed = sPressed = dPressed = false;
     angle = 0;
+    desiredAngle = 0;
+    rotationSpeedDefault = 8.0; // degrees per frame; lower = slower/smoother
+    aimRotationSpeed = 60.0;    // when aiming at target rotate much faster
+    rotationSpeedCurrent = rotationSpeedDefault;
     speed = 5.0;
+    maxSpeed = 20.0;
     health = 20;
     maxHealth = 20;
     knockbackVelocity = QPointF(0, 0);
     invincibilityFrames = 0;
     lastShotTimer.start();
     attackDamage = 1;
+    aimHoldFrames = 0;
+}
+
+void Player::setEnemyLists(const QList<Enemy*> *enemiesList, const QList<Boss*> *bossesList)
+{
+    gameEnemies = enemiesList;
+    gameBosses  = bossesList;
 }
 
 void Player::keyPressEvent(QKeyEvent *event)
@@ -44,6 +69,12 @@ void Player::keyPressEvent(QKeyEvent *event)
     if (event->key() == Qt::Key_S) sPressed = true;
     if (event->key() == Qt::Key_D) dPressed = true;
     if (event->key() == Qt::Key_F) fPressed = true;
+
+    // Toggle targeting mode on G press
+    if (event->key() == Qt::Key_G) {
+        toggleTargetMode();
+        qDebug() << "Target mode toggled. targetByHP =" << isTargetByHP();
+    }
 }
 
 void Player::keyReleaseEvent(QKeyEvent *event)
@@ -59,51 +90,84 @@ void Player::keyReleaseEvent(QKeyEvent *event)
 
 }
 
-void Player::updateRotation(QPointF mousePos)
+// Mouse-based aiming disabled: always auto-aim now.
+// Keep the function a no-op so Game::mouseMoveEvent can remain unchanged
+void Player::updateRotation(QPointF /*mousePos*/)
 {
-    QPointF centerPos = pos();
-    qreal dx = mousePos.x() - centerPos.x();
-    qreal dy = mousePos.y() - centerPos.y();
+    // intentionally empty to prevent mouse from changing ship rotation
+}
 
-    angle = qAtan2(dy, dx) * 180 / M_PI;
-    setRotation(angle);
+void Player::setSpeed(qreal s)
+{
+    qreal newSpeed = s;
+    if (newSpeed < 0.1) newSpeed = 0.1;
+    if (newSpeed > maxSpeed) newSpeed = maxSpeed;
+    speed = newSpeed;
 }
 
 void Player::updateMovement()
 {
-    qreal dx = 0;
-    qreal dy = 0;
+    qreal inputX = 0;
+    qreal inputY = 0;
 
-    if (wPressed) dy -= speed;
-    if (sPressed) dy += speed;
-    if (aPressed) dx -= speed;
-    if (dPressed) dx += speed;
+    if (wPressed) inputY -= 1.0;
+    if (sPressed) inputY += 1.0;
+    if (aPressed) inputX -= 1.0;
+    if (dPressed) inputX += 1.0;
 
-    // Add knockback
-    dx += knockbackVelocity.x();
-    dy += knockbackVelocity.y();
+    // Normalize input vector so diagonal movement isn't faster
+    qreal len = qSqrt(inputX * inputX + inputY * inputY);
+    qreal moveX = 0;
+    qreal moveY = 0;
+    if (len > 0.0) {
+        moveX = (inputX / len) * speed;
+        moveY = (inputY / len) * speed;
+    }
 
-    // Reduce knockback over time (friction)
+    // Add knockback (kept as-is)
+    moveX += knockbackVelocity.x();
+    moveY += knockbackVelocity.y();
+
+    // Friction on knockback
     knockbackVelocity *= 0.9;
 
-    setPos(x() + dx, y() + dy);
+    setPos(x() + moveX, y() + moveY);
 
-    // Wrap around map edges
+    // Determine desiredAngle:
+    qreal moveLen2 = moveX*moveX + moveY*moveY;
+    const qreal moveThreshold2 = 0.01;
+
+    if (aimHoldFrames > 0) {
+        --aimHoldFrames;
+        rotationSpeedCurrent = aimRotationSpeed;
+    } else {
+        rotationSpeedCurrent = rotationSpeedDefault;
+        if (moveLen2 > moveThreshold2) {
+            desiredAngle = qAtan2(moveY, moveX) * 180.0 / M_PI;
+        }
+    }
+
+    qreal diff = AngleUtils::AngleDelta(angle, desiredAngle);
+    qreal step = rotationSpeedCurrent;
+    if (diff > step) diff = step;
+    else if (diff < -step) diff = -step;
+    angle += diff;
+    while (angle < -180.0) angle += 360.0;
+    while (angle >= 180.0) angle -= 360.0;
+    setRotation(angle);
+
+    // Wrap
     QPointF currentPos = pos();
     qreal mapWidth = 2000;
     qreal mapHeight = 2000;
     qreal halfWidth = mapWidth / 2;
     qreal halfHeight = mapHeight / 2;
 
-    if (currentPos.x() > halfWidth)
-        setPos(-halfWidth, currentPos.y());
-    else if (currentPos.x() < -halfWidth)
-        setPos(halfWidth, currentPos.y());
+    if (currentPos.x() > halfWidth) setPos(-halfWidth, currentPos.y());
+    else if (currentPos.x() < -halfWidth) setPos(halfWidth, currentPos.y());
 
-    if (currentPos.y() > halfHeight)
-        setPos(currentPos.x(), -halfHeight);
-    else if (currentPos.y() < -halfHeight)
-        setPos(currentPos.x(), halfHeight);
+    if (currentPos.y() > halfHeight) setPos(currentPos.x(), -halfHeight);
+    else if (currentPos.y() < -halfHeight) setPos(currentPos.x(), halfHeight);
 }
 
 void Player::takeDamage(int damage)
@@ -213,31 +277,130 @@ void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
 
 void Player::updateFromJoystick(double axisX, double axisY, bool tir)
 {
-    //  Gérer le mouvement fluide
-    qreal speed = 5.0; // Ta vitesse max
+    qreal maxAxisSpeed = speed;
 
-    // On déplace le joueur en fonction de l'inclinaison du joystick
-    this->setPos(x() + (axisX * speed), y() + (axisY * speed));
+    qreal ax = static_cast<qreal>(axisX);
+    qreal ay = static_cast<qreal>(axisY);
+    qreal len = qSqrt(ax*ax + ay*ay);
 
-    //  Gérer la rotation
-    if (qAbs(axisX) > 0.1 || qAbs(axisY) > 0.1) { // Zone morte pour éviter de trembler
-        qreal angle = qAtan2(axisY, axisX) * 180 / M_PI;
-        setRotation(angle);
+    qreal moveX = 0;
+    qreal moveY = 0;
+    if (len > 0.0) {
+        if (len > 1.0) {
+            moveX = (ax / len) * maxAxisSpeed;
+            moveY = (ay / len) * maxAxisSpeed;
+        } else {
+            moveX = ax * maxAxisSpeed;
+            moveY = ay * maxAxisSpeed;
+        }
     }
 
-    // Gérer le tir
+    // Apply knockback
+    moveX += knockbackVelocity.x();
+    moveY += knockbackVelocity.y();
+    knockbackVelocity *= 0.9;
+
+    setPos(x() + moveX, y() + moveY);
+
+    if (len > 0.1) {
+        desiredAngle = qAtan2(ay, ax) * 180.0 / M_PI;
+    }
+
     if (tir) {
-        //this->shoot();
         if (lastShotTimer.elapsed() > msBetweenShots) {
             this->shoot();
-            lastShotTimer.restart(); // On remet le compteur à zéro
+            lastShotTimer.restart();
         }
     }
 }
 
 void Player::shoot() {
-    // On utilise pos() pour la position et l'angle actuel du vaisseau
-    Bullet *bullet = new Bullet(this->pos(), this->angle);
+    if (lastShotTimer.elapsed() < msBetweenShots) return;
+
+    qreal targetAngle = desiredAngle;
+    QPointF myPos = pos();
+
+    bool found = false;
+    qreal bestDist2 = std::numeric_limits<qreal>::infinity();
+    qreal bestHP = -std::numeric_limits<qreal>::infinity();
+    QPointF chosenPos;
+
+    auto considerTarget = [&](QPointF p, qreal hp) {
+        qreal dx = p.x() - myPos.x();
+        qreal dy = p.y() - myPos.y();
+        qreal d2 = dx*dx + dy*dy;
+
+        if (targetByHP) {
+            if (hp > bestHP || (qFuzzyCompare(hp, bestHP) && d2 < bestDist2)) {
+                bestHP = hp;
+                bestDist2 = d2;
+                chosenPos = p;
+                found = true;
+            }
+        } else {
+            if (d2 < bestDist2) {
+                bestDist2 = d2;
+                chosenPos = p;
+                found = true;
+            }
+        }
+    };
+
+    if (gameEnemies || gameBosses) {
+        if (gameEnemies) {
+            for (Enemy* e : *gameEnemies) {
+                if (!e) continue;
+                considerTarget(e->pos(), static_cast<qreal>(e->getHealth()));
+            }
+        }
+        if (gameBosses) {
+            for (Boss* b : *gameBosses) {
+                if (!b) continue;
+                considerTarget(b->pos(), static_cast<qreal>(b->getHealth()));
+            }
+        }
+    } else {
+        QGraphicsScene *sc = scene();
+        if (sc) {
+            const QList<QGraphicsItem*> items = sc->items();
+            for (QGraphicsItem *it : items) {
+                Enemy *e = dynamic_cast<Enemy*>(it);
+                if (e) {
+                    considerTarget(e->pos(), static_cast<qreal>(e->getHealth()));
+                    continue;
+                }
+                Boss *b = dynamic_cast<Boss*>(it);
+                if (b) {
+                    considerTarget(b->pos(), static_cast<qreal>(b->getHealth()));
+                }
+            }
+        }
+    }
+
+    if (found) {
+        qreal dx = chosenPos.x() - myPos.x();
+        qreal dy = chosenPos.y() - myPos.y();
+        targetAngle = qAtan2(dy, dx) * 180.0 / M_PI;
+
+        desiredAngle = targetAngle;
+        aimHoldFrames = 12;
+        rotationSpeedCurrent = aimRotationSpeed;
+    }
+
+    Bullet *bullet = new Bullet(this->pos(), targetAngle);
+    bullet->setDamage(attackDamage);
 
     emit bulletFired(bullet);
+
+    lastShotTimer.restart();
+}
+
+// resetInputStates implementation
+void Player::resetInputStates()
+{
+    wPressed = aPressed = sPressed = dPressed = fPressed = false;
+    useJoystick = false;
+    knockbackVelocity = QPointF(0,0);
+    aimHoldFrames = 0;
+    rotationSpeedCurrent = rotationSpeedDefault;
 }

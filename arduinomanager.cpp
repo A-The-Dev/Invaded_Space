@@ -79,6 +79,6 @@ void ArduinoManager::sendGameState(int level, int bossID, bool del) {
         qDebug() << "Données envoyées :" << data;
     }
     else {
-        qDebug() << "Erreur : Le port série n'est pas ouvert !";
+        //qDebug() << "Erreur : Le port série n'est pas ouvert !";
     }
 }

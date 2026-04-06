@@ -8,7 +8,12 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QPainter>
 #include <QElapsedTimer>
+#include <QList>
 #include "bullet.h"
+
+class Enemy;
+class Boss;
+
 class Player : public QObject, public QGraphicsRectItem
 {
     Q_OBJECT
@@ -35,11 +40,22 @@ public:
     bool tryUseUltimate();
     int getAttackDamage() const { return attackDamage; }
     void setAttackDamage(int val) { attackDamage = val; }
-    //void updateFromJoystick(double angle, double vitesse, bool tir);
+
     void updateFromJoystick(qreal axisX, qreal axisY, bool isShooting);
     void shoot();
-    //void setWeapon(WeaponType type) { currentWeapon = type; }
-   // WeaponType getWeapon() const { return currentWeapon; }
+
+    qreal getSpeed() const { return speed; }
+    void setSpeed(qreal s);
+
+    // Toggle target selection mode (nearest vs most HP)
+    void toggleTargetMode() { targetByHP = !targetByHP; }
+    bool isTargetByHP() const { return targetByHP; }
+
+    // Provide access to game enemy lists so player can target reliably
+    void setEnemyLists(const QList<Enemy*> *enemiesList, const QList<Boss*> *bossesList);
+
+    // Reset movement/input state (call when focus lost / modal shown)
+    void resetInputStates();
 
 public slots:
     void update();
@@ -51,9 +67,15 @@ signals:
 
 private:
     QPixmap sprite;
-    bool wPressed, aPressed, sPressed, dPressed,fPressed;
-    qreal angle;
+    bool wPressed, aPressed, sPressed, dPressed, fPressed;
+    qreal angle;             // current rotation in degrees
+    qreal desiredAngle;      // target rotation in degrees
+    qreal rotationSpeedCurrent; // current degrees-per-frame rotation speed
+    qreal rotationSpeedDefault; // default smoothing speed
+    qreal aimRotationSpeed;     // faster rotation when aiming at a target
+
     qreal speed;
+    qreal maxSpeed;
     int health;
     int maxHealth;
     QPointF knockbackVelocity;
@@ -65,7 +87,16 @@ private:
     bool useJoystick = false;
     QElapsedTimer lastShotTimer;
     int msBetweenShots = 200; // 200ms = 5 balles par seconde max
-   // WeaponType currentWeapon = Normal;
+
+    // New: toggle between nearest target and highest-HP target
+    bool targetByHP = false;
+
+    // Pointers to the Game lists (not owned)
+    const QList<Enemy*> *gameEnemies = nullptr;
+    const QList<Boss*>  *gameBosses  = nullptr;
+
+    // Hold rotation toward target for a short time after shooting so movement doesn't immediately override it
+    int aimHoldFrames = 0;
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr);

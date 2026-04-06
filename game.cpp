@@ -6,6 +6,7 @@
 #include <QtMath>
 #include <QDebug>
 #include "arduinomanager.h"
+#include <QFocusEvent>
 
 Game::Game(QWidget *parent) : QGraphicsView(parent)
 {
@@ -30,6 +31,9 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     player = new Player();
     player->setPos(0, 0);
     scene->addItem(player);
+
+    // Provide player with pointers to the current enemy / boss lists so auto-targeting works.
+    player->setEnemyLists(&enemies, &bosses);
 
     arduino = new ArduinoManager(this);
    // arduino->connectToArduino("COM3");
@@ -207,9 +211,8 @@ void Game::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        Bullet *bullet = new Bullet(player->pos(), player->getAngle());
-        scene->addItem(bullet);  // Add to scene directly, not as child of player
-        bullets.append(bullet);
+        // Use Player::shoot() so auto-aim is applied and rate limiting is respected.
+        player->shoot();
     }
 }
 
@@ -396,19 +399,22 @@ void Game::onPlayerDied() {
 }
 
 void Game::onLevelUp(int level) {
-    // Met le jeu en pause
     timer->stop();
 
-    // Créer et afficher le menu
+    if (player) player->resetInputStates();
+
     UpgradeMenu *menu = new UpgradeMenu(this);
 
     //Connecte le choix du menu aux actions du joueur
     connect(menu, &UpgradeMenu::upgradeSelected, [this](int choice) {
         if (choice == 0) { // Vitesse
-            //player->setSpeed(player->getSpeed() + 0.5);
+            qreal increment = 0.4; // smaller, reasonable increment
+            player->setSpeed(player->getSpeed() + increment);
+            qDebug() << "Applied speed upgrade, new speed =" << player->getSpeed();
         }
         else if (choice == 1) { // Dégâts
             player->setAttackDamage(player->getAttackDamage() + 1);
+            qDebug() << "Applied damage upgrade, new damage =" << player->getAttackDamage();
         }
         else if (choice == 2) { // Vie
             player->increaseMaxHealth(2);
@@ -418,12 +424,18 @@ void Game::onLevelUp(int level) {
 
     menu->exec();
 
-    // Relance le jeu après la fermeture du menu
     timer->start();
 
     // Mise à jour du HUD
     hud->updateLevel(level);
     setWindowTitle(QString("Invaded Space - Level %1").arg(level));
+}
+
+void Game::focusOutEvent(QFocusEvent *event)
+{
+    Q_UNUSED(event);
+    if (player) player->resetInputStates();
+    QGraphicsView::focusOutEvent(event);
 }
 
 void Game::onXPOrbCollected(XPOrb *orb)
@@ -508,20 +520,165 @@ void Game::updateGame()
         }
     }
 
-    // Update enemies
+    // Update enemies with LOD: full update only when near camera; idleUpdate otherwise.
+    const qreal enemyActiveRadius = 600.0; // tuneable radius around cameraTarget for full updates
+    const qreal activeRadius2 = enemyActiveRadius * enemyActiveRadius;
     for (int i = 0; i < enemies.size(); ++i)
     {
-        enemies[i]->updateMovement(playerPos);
+        Enemy* e = enemies[i];
+        if (!e) continue;
+        QPointF d = e->pos() - cameraTarget;
+        qreal dist2 = d.x()*d.x() + d.y()*d.y();
+        if (dist2 <= activeRadius2)
+        {
+            e->updateMovement(playerPos);
+        }
+        else
+        {
+            e->idleUpdate();
+        }
     }
-    // Update bosses
+    // Update bosses: fewer bosses expected so keep full updates but still skip if extremely far
+    const qreal bossActiveRadius = 1200.0;
+    const qreal bossActiveRadius2 = bossActiveRadius * bossActiveRadius;
     for (int i = 0; i < bosses.size(); ++i)
     {
-        bosses[i]->updateMovement(playerPos);
+        Boss* b = bosses[i];
+        if (!b) continue;
+        QPointF d = b->pos() - cameraTarget;
+        qreal dist2 = d.x()*d.x() + d.y()*d.y();
+        if (dist2 <= bossActiveRadius2)
+            b->updateMovement(playerPos);
+        else
+            b->idleUpdate(); // if Boss has no idleUpdate, this is a no-op; add similar method if needed
     }
     // Update XP orbs
     for (int i = 0; i < xpOrbs.size(); ++i)
     {
         xpOrbs[i]->moveTowardsPlayer(playerPos);
+    }
+
+    // Two-phase merging with variable combine size (15-35)
+    const int minCombine = 15;
+    const int maxCombine = 35;
+    const qreal clusterRadius = 300.0;
+    const qreal combineDistance = 12.0;
+
+    // Phase 1: detect clusters and start merging (one cluster per frame)
+    bool startedClusterThisFrame = false;
+    for (int i = 0; i < xpOrbs.size() && !startedClusterThisFrame; ++i)
+    {
+        XPOrb* a = xpOrbs[i];
+        if (!a || a->isLocked() || a->isMerging()) continue;
+
+        QList<XPOrb*> neighbors;
+        neighbors.append(a);
+
+        for (int j = 0; j < xpOrbs.size(); ++j)
+        {
+            if (i == j) continue;
+            XPOrb* b = xpOrbs[j];
+            if (!b || b->isLocked() || b->isMerging()) continue;
+            qreal dx = a->pos().x() - b->pos().x();
+            qreal dy = a->pos().y() - b->pos().y();
+            if (dx*dx + dy*dy <= clusterRadius * clusterRadius)
+                neighbors.append(b);
+        }
+
+        int N = neighbors.size();
+        if (N >= minCombine)
+        {
+            qreal total = 0.0;
+            QPointF weighted(0,0);
+            for (XPOrb* o : neighbors) {
+                int v = o->getXPValue();
+                total += v;
+                weighted += o->pos() * v;
+            }
+            if (total <= 0) continue;
+            QPointF centroid = weighted / total;
+
+            for (XPOrb* o : neighbors) {
+                o->startMerging(centroid);
+            }
+
+            startedClusterThisFrame = true;
+        }
+    }
+
+    // Phase 2: when enough orbs reach centroid, combine a bounded number (15-35)
+    QMap<QPair<int,int>, QList<XPOrb*>> mergingGroups;
+    for (XPOrb* o : xpOrbs)
+    {
+        if (!o || !o->isMerging()) continue;
+        QPointF t = o->mergeTarget();
+        int keyX = qRound(t.x() * 10.0);
+        int keyY = qRound(t.y() * 10.0);
+        mergingGroups[qMakePair(keyX, keyY)].append(o);
+    }
+
+    for (auto it = mergingGroups.begin(); it != mergingGroups.end(); ++it)
+    {
+        QList<XPOrb*> group = it.value();
+        if (group.size() < minCombine) continue;
+
+        QPointF target = group.first()->mergeTarget();
+        QList<QPair<qreal,XPOrb*>> readyDistances;
+        for (XPOrb* o : group)
+        {
+            qreal dx = o->pos().x() - target.x();
+            qreal dy = o->pos().y() - target.y();
+            qreal d2 = dx*dx + dy*dy;
+            if (d2 <= combineDistance * combineDistance)
+                readyDistances.append(qMakePair(d2, o));
+        }
+
+        if (readyDistances.size() >= minCombine)
+        {
+            std::sort(readyDistances.begin(), readyDistances.end(),
+                      [](const QPair<qreal,XPOrb*> &a, const QPair<qreal,XPOrb*> &b){
+                          return a.first < b.first;
+                      });
+
+            int readyCount = readyDistances.size();
+            int combineCount = qBound(minCombine, readyCount, maxCombine);
+
+            int totalXP = 0;
+            QPointF weighted(0,0);
+
+            QList<XPOrb*> toRemove;
+            for (int k = 0; k < combineCount; ++k)
+            {
+                XPOrb* o = readyDistances[k].second;
+                toRemove.append(o);
+                totalXP += o->getXPValue();
+                weighted += o->pos() * o->getXPValue();
+            }
+
+            if (totalXP > 0)
+            {
+                QPointF combinedPos = weighted / static_cast<qreal>(totalXP);
+
+                for (XPOrb* o : toRemove)
+                {
+                    xpOrbs.removeOne(o);
+                    if (o->scene()) scene->removeItem(o);
+                    delete o;
+                }
+
+                XPOrb* combined = new XPOrb(combinedPos, totalXP);
+                combined->setLocked(true);
+                scene->addItem(combined);
+                xpOrbs.append(combined);
+            }
+
+            // reset merging flag on remaining orbs in this group so they don't get stuck
+            for (XPOrb* o : group)
+            {
+                if (!toRemove.contains(o))
+                    o->stopMerging();
+            }
+        }
     }
 
     // Check XP orb collection
@@ -593,7 +750,7 @@ void Game::updateGame()
     }
 
     // Remove bullets that went off screen
-    for (int i = 0; i < bulletsToRemove.size(); ++i)
+    for (int i = 0; i < bulletsToRemove.size(); i++)
     {
         bullets.removeOne(bulletsToRemove[i]);
         scene->removeItem(bulletsToRemove[i]);

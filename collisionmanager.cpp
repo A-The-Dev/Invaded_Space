@@ -2,6 +2,23 @@
 #include <QGraphicsScene>
 #include <QtMath>
 
+// small helper: quick check using approximate radii to avoid expensive shape tests
+static bool approxNearby(QGraphicsItem *a, QGraphicsItem *b, qreal extra = 4.0)
+{
+    QPointF pa = a->pos();
+    QPointF pb = b->pos();
+    qreal dx = pa.x() - pb.x();
+    qreal dy = pa.y() - pb.y();
+    qreal dist2 = dx*dx + dy*dy;
+
+    QRectF ra = a->boundingRect();
+    QRectF rb = b->boundingRect();
+    qreal raRadius = qMax(ra.width(), ra.height()) * 0.5;
+    qreal rbRadius = qMax(rb.width(), rb.height()) * 0.5;
+    qreal thresh = raRadius + rbRadius + extra;
+    return dist2 <= (thresh * thresh);
+}
+
 CollisionManager::CollisionManager(QObject *parent) : QObject(parent)
 {
 }
@@ -35,14 +52,18 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
 
         bool bulletRemoved = false;
 
-        // Check collision with enemies
+        // Check collision with enemies (broad-phase approxNearby first)
         for (int j = 0; j < enemies.size(); ++j)
         {
-            if (checkCollision(b, enemies[j]))
-            {
-                enemies[j]->takeDamage(b->getDamage());
+            Enemy* e = enemies[j];
+            if (!e) continue;
 
-                // Remove bullet
+            if (!approxNearby(b, e)) continue;
+
+            if (checkCollision(b, e))
+            {
+                e->takeDamage(b->getDamage());
+
                 bullets.removeAt(i);
                 if (b->scene()) b->scene()->removeItem(b);
                 delete b;
@@ -57,11 +78,15 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
         // Check collision with bosses
         for (int j = 0; j < bosses.size(); ++j)
         {
-            if (checkCollision(b, bosses[j]))
-            {
-                bosses[j]->takeDamage(b->getDamage());
+            Boss* bs = bosses[j];
+            if (!bs) continue;
 
-                // Remove bullet
+            if (!approxNearby(b, bs)) continue;
+
+            if (checkCollision(b, bs))
+            {
+                bs->takeDamage(b->getDamage());
+
                 bullets.removeAt(i);
                 if (b->scene()) b->scene()->removeItem(b);
                 delete b;
@@ -74,10 +99,13 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
     // Enemy bullets vs player
     for (int i = bullets.size() - 1; i >= 0; --i)
     {
-        if (bullets[i]->isFromPlayer())
+        Bullet* bl = bullets[i];
+        if (bl->isFromPlayer())
             continue;
 
-        if (checkCollision(bullets[i], player))
+        if (!approxNearby(bl, player)) continue;
+
+        if (checkCollision(bl, player))
         {
             player->takeDamage(1);
 
@@ -92,10 +120,15 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
     // Player vs enemies (contact damage)
     for (int i = 0; i < enemies.size(); ++i)
     {
-        if (checkCollision(player, enemies[i]))
+        Enemy* e = enemies[i];
+        if (!e) continue;
+
+        if (!approxNearby(player, e, 8.0)) continue;
+
+        if (checkCollision(player, e))
         {
             QPointF playerPos = player->pos();
-            QPointF enemyPos = enemies[i]->pos();
+            QPointF enemyPos = e->pos();
             QPointF pushDir = playerPos - enemyPos;
 
             player->pushBack(pushDir, 8.0);
@@ -105,17 +138,22 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
                 player->takeDamage(1);
             }
 
-            emit playerHitEnemy(enemies[i]);
+            emit playerHitEnemy(e);
         }
     }
 
     // Player vs bosses (contact damage)
     for (int i = 0; i < bosses.size(); ++i)
     {
-        if (checkCollision(player, bosses[i]))
+        Boss* b = bosses[i];
+        if (!b) continue;
+
+        if (!approxNearby(player, b, 12.0)) continue;
+
+        if (checkCollision(player, b))
         {
             QPointF playerPos = player->pos();
-            QPointF bossPos = bosses[i]->pos();
+            QPointF bossPos = b->pos();
             QPointF pushDir = playerPos - bossPos;
 
             player->pushBack(pushDir, 8.0);
@@ -125,27 +163,29 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
                 player->takeDamage(1);
             }
 
-            emit playerHitBoss(bosses[i]);
+            emit playerHitBoss(b);
         }
     }
 
     // Ultimate attacks vs player
     for (int i = ultimates.size() - 1; i >= 0; --i)
     {
-        if (checkCollision(ultimates[i], player))
+        Ultimate* u = ultimates[i];
+        if (!u) continue;
+
+        if (!approxNearby(u, player, 8.0)) continue;
+
+        if (checkCollision(u, player))
         {
             if (!player->isInvincible())
             {
                 player->takeDamage(2);
 
-                if (ultimates[i]->getSpeed() > 0)
+                if (u->getSpeed() > 0)
                 {
-                    Ultimate* u = ultimates.takeAt(i);
-                    if (u->scene()) u->scene()->removeItem(u);
-                    delete u;
-
-                    // Don't emit with invalid boss pointer
-                    // Only emit if you have a valid boss reference
+                    Ultimate* removed = ultimates.takeAt(i);
+                    if (removed->scene()) removed->scene()->removeItem(removed);
+                    delete removed;
                 }
             }
         }

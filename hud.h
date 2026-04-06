@@ -6,6 +6,7 @@
 #include <QGraphicsScene>
 #include <QObject>
 
+class QTimer;
 
 class HUD : public QObject
 {
@@ -20,17 +21,32 @@ public slots:
     void updateLevel(int level);
     void updateXP(int currentXP, int xpToNextLevel);
 
+private slots:
+    void onUltimatePulse();
+
 private:
+    // Player-attached UI
     QGraphicsRectItem *healthBarBackground;
     QGraphicsRectItem *healthBarFill;
     QGraphicsTextItem *healthText;
-    QGraphicsRectItem *xpBarBackground;
-    QGraphicsRectItem *xpBarFill;
+
+    QGraphicsRectItem *levelBackground;
     QGraphicsTextItem *levelText;
-    QGraphicsScene *scene;
-    QPointF smoothPos;
+
+    // Player-attached XP
+    QGraphicsRectItem *playerXPBackground;
+    QGraphicsRectItem *playerXPFill;
+
+    // Ultimat
     QGraphicsRectItem* ultimateBar;
     QGraphicsRectItem* ultimateBackground;
+
+    // Pulse animation timer for ultimate full effect
+    QTimer* ultimatePulseTimer;
+    bool ultimatePulseGrowing = false;
+
+    QGraphicsScene *scene;
+    QPointF smoothPos;
 };
 
 #endif // HUD_H
