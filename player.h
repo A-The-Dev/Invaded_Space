@@ -9,6 +9,7 @@
 #include <QPainter>
 #include <QElapsedTimer>
 #include "bullet.h"
+using namespace std;
 class Player : public QObject, public QGraphicsRectItem
 {
     Q_OBJECT
@@ -36,7 +37,9 @@ public:
     int getAttackDamage() const { return attackDamage; }
     void setAttackDamage(int val) { attackDamage = val; }
     //void updateFromJoystick(double angle, double vitesse, bool tir);
-    void updateFromJoystick(qreal axisX, qreal axisY, bool isShooting);
+    void updateFromJoystick(qreal axisX, qreal axisY, bool isShooting);     
+	void setPlayerName(const string& name) { playerName = name; }
+	string getPlayerName() const { return playerName; }
     void shoot();
     //void setWeapon(WeaponType type) { currentWeapon = type; }
    // WeaponType getWeapon() const { return currentWeapon; }
@@ -51,6 +54,7 @@ signals:
 
 private:
     QPixmap sprite;
+	string playerName;
     bool wPressed, aPressed, sPressed, dPressed,fPressed;
     qreal angle;
     qreal speed;

@@ -1,0 +1,74 @@
+[
+    {
+        "atk": 1,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 1,
+        "name": "",
+        "score": 20
+    },
+    {
+        "atk": 4,
+        "color": "#CC9900",
+        "hp": 22,
+        "lvl": 5,
+        "name": "",
+        "score": 200
+    },
+    {
+        "atk": 1,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 1,
+        "name": "",
+        "score": 0
+    },
+    {
+        "atk": 1,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 1,
+        "name": "",
+        "score": 40
+    },
+    {
+        "atk": 2,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 2,
+        "name": "",
+        "score": 40
+    },
+    {
+        "atk": 1,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 1,
+        "name": "",
+        "score": 20
+    },
+    {
+        "atk": 2,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 2,
+        "name": "",
+        "score": 0
+    },
+    {
+        "atk": 12,
+        "color": "#CC9900",
+        "hp": 22,
+        "lvl": 13,
+        "name": "",
+        "score": 400
+    },
+    {
+        "atk": 13,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 13,
+        "name": "",
+        "score": 4650
+    }
+]

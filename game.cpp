@@ -278,6 +278,7 @@ void Game::keyReleaseEvent(QKeyEvent *event)
 
 void Game::onEnemyDestroyed(Enemy *enemy)
 {
+    currentScore += 10;
     // Spawn XP orb at enemy position
     int xpValue = 20;  // Base XP value
     XPOrb *orb = new XPOrb(enemy->pos(), xpValue);
@@ -292,6 +293,7 @@ void Game::onEnemyDestroyed(Enemy *enemy)
 }
 void Game::onBossDestroyed(Boss *boss)
 {
+    currentScore += 100;
     // Spawn XP orb at enemy position
     int xpValue = 500;  // Base XP value
     XPOrb *orb = new XPOrb(boss->pos(), xpValue);
@@ -389,10 +391,25 @@ void Game::onBossUltimate(QPointF position, qreal angle, bool isBoss) {
     }
 }
 
-void Game::onPlayerDied() {
-    // Game over logic
-    timer->stop();
-    setWindowTitle("GAME OVER - Close to restart");
+void Game::onPlayerDied() 
+{
+    if (timer) timer->stop();
+    JsonParser::savePlayerResult(player, levelSystem->getLevel(),  currentScore);
+   
+
+    Leaderboard* lb = new Leaderboard();
+    QGraphicsProxyWidget* proxy = scene->addWidget(lb);
+
+    // Positionnement
+    proxy->setPos(cameraTarget.x() - lb->width() / 2, cameraTarget.y() - lb->height() / 2);
+    proxy->setZValue(10000);
+
+    // --- RENDRE LE WIDGET PRIORITAIRE ---
+    lb->setFocusPolicy(Qt::StrongFocus);
+    lb->setFocus();
+
+    // Optionnel : Désactiver le scroll de la vue principale pendant que le leaderboard est là
+    this->setTransformationAnchor(QGraphicsView::NoAnchor);
 }
 
 void Game::onLevelUp(int level) {
