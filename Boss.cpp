@@ -28,7 +28,7 @@ Boss::Boss(BossType type, QPointF startPos, QGraphicsItem *parent)
         t.rotate(90);
         sprite = sprite.transformed(t, Qt::SmoothTransformation);
         setHealth(300);
-        setSpeed(3.5);
+        setSpeed(5.5);
         break;
     }
 
@@ -100,7 +100,7 @@ void Boss::updateMovement(QPointF playerPos)
             setPos(currentPos.x() + dx, currentPos.y() + dy);
 
             // Rotate to face player
-            setAngle( qAtan2(dy, dx) * 180 / M_PI);
+            setAngle( qAtan2(dy, dx) * 90 / M_PI);
             setRotation(getAngle());
         }
         setUltimateTimer(getUltimateTimer()+1);
