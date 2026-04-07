@@ -14,6 +14,7 @@
 class Enemy;
 class Boss;
 
+using namespace std;
 class Player : public QObject, public QGraphicsRectItem
 {
     Q_OBJECT
@@ -40,8 +41,10 @@ public:
     bool tryUseUltimate();
     int getAttackDamage() const { return attackDamage; }
     void setAttackDamage(int val) { attackDamage = val; }
-
-    void updateFromJoystick(qreal axisX, qreal axisY, bool isShooting);
+    //void updateFromJoystick(double angle, double vitesse, bool tir);
+    void updateFromJoystick(qreal axisX, qreal axisY, bool isShooting);     
+	void setPlayerName(const string& name) { playerName = name; }
+	string getPlayerName() const { return playerName; }
     void shoot();
 
     qreal getSpeed() const { return speed; }
@@ -74,6 +77,7 @@ private:
     qreal rotationSpeedDefault; // default smoothing speed
     qreal aimRotationSpeed;     // faster rotation when aiming at a target
 
+	string playerName;
     qreal speed;
     qreal maxSpeed;
     int health;

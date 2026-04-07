@@ -17,6 +17,10 @@
 #include "Boss.h"
 #include "ultimate.h"
 #include "arduinomanager.h"
+#include "JsonParser.h"
+#include "leaderboard.h"
+#include <QGraphicsProxyWidget>
+
 class Game : public QGraphicsView
 {
     Q_OBJECT
@@ -65,6 +69,7 @@ private:
     int lastBossLevel = 0;
     int bossSpawnTimer;
     ArduinoManager *arduino;
+    int currentScore = 0;
 
     bool isFullscreen = false;
     QRect previousGeometry;
