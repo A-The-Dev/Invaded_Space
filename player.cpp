@@ -8,6 +8,7 @@
 #include "enemy.h"
 #include "Boss.h"
 #include <limits>
+#include "ultimate.h"
 
 namespace AngleUtils {
     // normalize difference to [-180,180)
@@ -275,36 +276,25 @@ void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
     painter->drawPixmap(rect().topLeft(), sprite);
 }
 
-void Player::updateFromJoystick(double axisX, double axisY, bool tir)
+void Player::updateFromJoystick(double axisX, double axisY, bool tir, bool ulti)
 {
-    qreal maxAxisSpeed = speed;
+    this->joyX = axisX;
+    this->joyY = axisY;
+    this->isFiring = tir;
+	this->isUltiPressed = ulti;
+}
 
-    qreal ax = static_cast<qreal>(axisX);
-    qreal ay = static_cast<qreal>(axisY);
-    qreal len = qSqrt(ax*ax + ay*ay);
-
-    qreal moveX = 0;
-    qreal moveY = 0;
-    if (len > 0.0) {
-        if (len > 1.0) {
-            moveX = (ax / len) * maxAxisSpeed;
-            moveY = (ay / len) * maxAxisSpeed;
-        } else {
-            moveX = ax * maxAxisSpeed;
-            moveY = ay * maxAxisSpeed;
-        }
-    }
-
-    // Apply knockback
-    moveX += knockbackVelocity.x();
-    moveY += knockbackVelocity.y();
-    knockbackVelocity *= 0.9;
-
-    setPos(x() + moveX, y() + moveY);
+void Player::shoot() {
+    // On utilise pos() pour la position et l'angle actuel du vaisseau
+    Bullet *bullet = new Bullet(this->pos(), this->rotation());
 
     if (len > 0.1) {
         desiredAngle = qAtan2(ay, ax) * 180.0 / M_PI;
     }
+    emit bulletFired(bullet);
+}
+void Player::launchUltimate() {
+    qDebug() << "Tentative d'apparition de l'ultime...";
 
     if (tir) {
         if (lastShotTimer.elapsed() > msBetweenShots) {
@@ -313,6 +303,36 @@ void Player::updateFromJoystick(double axisX, double axisY, bool tir)
         }
     }
 }
+    //  Calculer la position 
+    QPointF spawnPos = this->scenePos();
+
+    //  Créer l'objet
+    Ultimate* myUltimate = new Ultimate(spawnPos, this->rotation(), true, this, nullptr, false);
+
+    // Vérifier la scène 
+    QGraphicsScene* currentScene = this->scene();
+    if (currentScene) {
+        currentScene->addItem(myUltimate);
+        myUltimate->setZValue(101);
+        qDebug() << "Succès : Ultime ajouté à la scène à : " << spawnPos;
+    }
+    else {
+        qDebug() << "ERREUR : Impossible de trouver la scène !";
+    }
+
+    this->isUltimateReady = false;
+}
+void Player::processMovement()
+{
+    qreal speed = 8.0; 
+
+    // Mouvement basé sur les dernières valeurs reçues
+    if (qAbs(joyX) > 0.1 || qAbs(joyY) > 0.1) {
+        this->setPos(x() + (joyX * speed), y() + (joyY * speed));
+
+        qreal targetAngle = qAtan2(joyY, joyX) * 180 / M_PI;
+        this->setRotation(targetAngle);
+    }
 
 void Player::shoot() {
     if (lastShotTimer.elapsed() < msBetweenShots) return;
@@ -389,6 +409,17 @@ void Player::shoot() {
 
     Bullet *bullet = new Bullet(this->pos(), targetAngle);
     bullet->setDamage(attackDamage);
+    // Tir 
+    if (isFiring) {
+        if (lastShotTimer.elapsed() > 100) {
+            this->shoot();
+            lastShotTimer.restart();
+        }
+    }
+    if (isUltiPressed && isUltimateReady) {
+        this->isUltimateReady = false;
+        emit requestUltimate();
+        //this->launchUltimate();
 
     emit bulletFired(bullet);
 

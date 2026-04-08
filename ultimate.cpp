@@ -1,4 +1,6 @@
 #include "ultimate.h"
+#include "player.h"  
+#include "boss.h"
 #include <QtMath>
 #include <QRadialGradient>
 

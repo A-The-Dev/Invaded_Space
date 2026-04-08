@@ -73,6 +73,7 @@ private:
 
     bool isFullscreen = false;
     QRect previousGeometry;
+    int currentBossID = 0;
 
     void spawnSpaceObject();
     void spawnEnemy();

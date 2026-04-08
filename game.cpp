@@ -39,6 +39,20 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     arduino = new ArduinoManager(this);
    // arduino->connectToArduino("COM3");
     if (arduino->connectToArduino("COM3")) {
+        qDebug() << "Connexion Arduino REUSSIE sur COM3";
+
+        // ACTIVE LE MODE JOYSTICK ICI
+        player->setUseJoystick(true);
+
+        // Si la variable est dans ton Player, fais ceci :
+        // player->setUseJoystick(true); 
+
+    }
+    else {
+        qDebug() << "Connexion Arduino ECHOUEE. Mode clavier actif.";
+        player->setUseJoystick(false);
+    }
+    if (arduino->connectToArduino("COM3")) {
         // On attend 2 secondes que l'Arduino finisse de rebooter avant d'envoyer
         /*QTimer::singleShot(2000, this, [this](){
             arduino->sendGameState(levelSystem->getLevel(), 1);
@@ -46,14 +60,17 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     }
 
     // 1. Reçoit les données de l'Arduino et fait bouger/tirer le joueur
-    connect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
+        //connect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
+    connect(arduino, &ArduinoManager::commandReceived, this, [this](double x, double y, bool tir, bool ulti) {
+        player->updateFromJoystick(x, y, tir, ulti);
+    });
 
     // 2. Reçoit la balle créée par le joueur et l'ajoute à la liste de collision
     connect(player, &Player::bulletFired, this, [this](Bullet* b){
         scene->addItem(b);
         bullets.append(b);
     });
-
+    connect(player, &Player::requestUltimate, this, &Game::triggerScreenClear);
     // Initialize camera
     cameraTarget = player->pos();
     cameraSmoothing = 0.1;  // Lower = smoother/slower, Higher = faster
@@ -107,6 +124,7 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     // Set window title
     setWindowTitle("Invaded Space - WASD to move, Click to shoot");
 }
+
 
 void Game::spawnSpaceObject()
 {
@@ -187,12 +205,16 @@ void Game::spawnBoss()
     int typeRoll = rng->bounded(100);
     Boss::BossType type;
 
-    if (typeRoll < 33)
+    if (typeRoll < 33) {
         type = Boss::Boss1;
-    else if (typeRoll < 66)
+        currentBossID = 1;
+    } else if (typeRoll < 66) {
         type = Boss::Boss2;
-    else
+        currentBossID = 2;
+    } else {
         type = Boss::Boss4;
+        currentBossID = 3;
+    }
 
     Boss *boss = new Boss(type, spawnPos);
 
@@ -428,9 +450,16 @@ void Game::onLevelUp(int level) {
 
     if (player) player->resetInputStates();
 
-    UpgradeMenu *menu = new UpgradeMenu(this);
+    // On déconnecte le joystick du joueur 
+    disconnect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
 
-    //Connecte le choix du menu aux actions du joueur
+    // Créer et afficher le menu
+    UpgradeMenu* menu = new UpgradeMenu(this);
+
+    // On connecte la manette au menu AVANT qu'il ne s'affiche
+    connect(arduino, &ArduinoManager::commandReceived, menu, &UpgradeMenu::navigateWithJoystick);
+
+    // Connecte le choix du menu aux actions du joueur
     connect(menu, &UpgradeMenu::upgradeSelected, [this](int choice) {
         if (choice == 0) { // Vitesse
             qreal increment = 0.4; // smaller, reasonable increment
@@ -445,10 +474,18 @@ void Game::onLevelUp(int level) {
             player->increaseMaxHealth(2);
         }
         player->refillHealth();
-    });
+        });
 
+    // Affiche le menu 
     menu->exec();
 
+    // On déconnecte la manette du menu
+    disconnect(arduino, &ArduinoManager::commandReceived, menu, &UpgradeMenu::navigateWithJoystick);
+
+    // On redonne le contrôle du joystick au joueur
+    connect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
+
+    // Relance le jeu
     timer->start();
 
     // Mise à jour du HUD
@@ -801,7 +838,9 @@ void Game::updateGame()
         sendCounter = 0;
     }
 
-    arduino->sendGameState(levelSystem->getLevel(),levelSystem->getLevel(), true );
+    //arduino->sendGameState(3,3, true );
+    arduino->sendGameState(levelSystem->getLevel(), this->currentBossID, player->getIsUltimateReady());
+    player->processMovement(); // On bouge le joueur à chaque "tick" du timer
     //player->updateFromJoystick(0.0, 0.0, true);
     // LIGNE DE TEST TEMPORAIRE :
     // On simule un mouvement vers la droite (0 rad) à pleine vitesse et un tir

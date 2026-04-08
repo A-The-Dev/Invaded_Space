@@ -6,17 +6,16 @@
 #include <QObject>
 #include <QPainter>
 #include <QPixmap>
-#include "Boss.h"
-#include "player.h"
+class Player;
+class Boss;
+
 
 
 class Ultimate : public QObject, public QGraphicsEllipseItem
 {
     Q_OBJECT
 public:
-    Ultimate(QPointF startPos, qreal angle, bool fromPlayer = true,
-             Player* player = nullptr, Boss* boss = nullptr,
-             bool fromBoss = false, QGraphicsItem *parent = nullptr);
+    Ultimate(QPointF startPos, qreal angle, bool fromPlayer, Player* player, Boss* boss, bool fromBoss, QGraphicsItem* parent = nullptr);
 
     bool isFromPlayer() const { return fromPlayer; }
     qreal getSpeed();

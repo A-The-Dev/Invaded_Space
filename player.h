@@ -10,11 +10,13 @@
 #include <QElapsedTimer>
 #include <QList>
 #include "bullet.h"
+#include "ultimate.h"
 
 class Enemy;
 class Boss;
 
 using namespace std;
+
 class Player : public QObject, public QGraphicsRectItem
 {
     Q_OBJECT
@@ -41,8 +43,9 @@ public:
     bool tryUseUltimate();
     int getAttackDamage() const { return attackDamage; }
     void setAttackDamage(int val) { attackDamage = val; }
-    //void updateFromJoystick(double angle, double vitesse, bool tir);
-    void updateFromJoystick(qreal axisX, qreal axisY, bool isShooting);     
+    bool getIsUltimateReady() const { return isUltimateReady; }
+    void processMovement();
+    void updateFromJoystick(double axisX, double axisY, bool tir, bool ulti);    
 	void setPlayerName(const string& name) { playerName = name; }
 	string getPlayerName() const { return playerName; }
     void shoot();
@@ -59,6 +62,10 @@ public:
 
     // Reset movement/input state (call when focus lost / modal shown)
     void resetInputStates();
+    void setUseJoystick(bool state) { useJoystick = state; }
+    void launchUltimate();
+    //void setWeapon(WeaponType type) { currentWeapon = type; }
+   // WeaponType getWeapon() const { return currentWeapon; }
 
 public slots:
     void update();
@@ -67,6 +74,7 @@ signals:
     void healthChanged(int health, int maxHealth);
     void died();
     void bulletFired(Bullet *bullet);
+    void requestUltimate();
 
 private:
     QPixmap sprite;
@@ -101,6 +109,11 @@ private:
 
     // Hold rotation toward target for a short time after shooting so movement doesn't immediately override it
     int aimHoldFrames = 0;
+   // WeaponType currentWeapon = Normal;
+    double joyX = 0;
+    double joyY = 0;
+    bool isFiring = false;
+    bool isUltiPressed = false;
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr);
