@@ -40,13 +40,14 @@ bool ArduinoManager::connectToArduino(const QString &portName) {
 
 void ArduinoManager::readSerial() {
     // On lit toutes les données disponibles jusqu'au saut de ligne (\n)
-    QByteArray rawData = serial->readLine();
+    /*QByteArray rawData = serial->readLine();
 
     if (!rawData.isEmpty()) {
-        qDebug() << "BRUT REÇU :" << rawData;
-    }
+        //qDebug() << "BRUT REÇU :" << rawData;
+    }*/
     while (serial->canReadLine()) {
         QByteArray data = serial->readLine().trimmed();
+        if (data.isEmpty()) continue;
 
         QJsonDocument doc = QJsonDocument::fromJson(data);
         if (!doc.isNull() && doc.isObject()) {
@@ -76,7 +77,7 @@ void ArduinoManager::sendGameState(int level, int bossID, bool del) {
 
         serial->write(data);
         serial->flush();
-        qDebug() << "Données envoyées :" << data;
+        //qDebug() << "Données envoyées :" << data;
     }
     else {
         qDebug() << "Erreur : Le port série n'est pas ouvert !";

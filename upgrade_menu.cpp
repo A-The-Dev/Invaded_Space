@@ -1,4 +1,7 @@
 #include "upgrade_menu.h"
+#include <QKeyEvent>
+#include <QApplication>
+#include <QEvent>
 
 UpgradeMenu::UpgradeMenu(QWidget *parent) : QDialog(parent)
 {
@@ -22,7 +25,29 @@ UpgradeMenu::UpgradeMenu(QWidget *parent) : QDialog(parent)
     connect(btnSpeed, &QPushButton::clicked, [this]() { emit upgradeSelected(0); accept(); });
     connect(btnDamage, &QPushButton::clicked, [this]() { emit upgradeSelected(1); accept(); });
     connect(btnHealth, &QPushButton::clicked, [this]() { emit upgradeSelected(2); accept(); });
+    this->setStyleSheet("background-color: #121212; color: white; font-family: 'Segoe UI', sans-serif;");
 
-    // Style sombre
-    setStyleSheet("background-color: #1a1a2e; color: white; font-weight: bold;");
+}
+void UpgradeMenu::navigateWithJoystick(double x, double y, bool tir, bool ultimate) {
+
+    if ((y > 0.7 || y < -0.7) && joystickAuNeutre) {
+        this->focusNextChild();
+        joystickAuNeutre = false;
+    }
+
+    if (y > -0.2 && y < 0.2) {
+        joystickAuNeutre = true;
+    }
+
+    if (tir) {
+        QWidget* boutonActuel = this->focusWidget();
+
+        if (boutonActuel) {
+            QKeyEvent pressSpace(QEvent::KeyPress, Qt::Key_Space, Qt::NoModifier);
+            QApplication::sendEvent(boutonActuel, &pressSpace);
+
+            QKeyEvent releaseSpace(QEvent::KeyRelease, Qt::Key_Space, Qt::NoModifier);
+            QApplication::sendEvent(boutonActuel, &releaseSpace);
+        }
+    }
 }

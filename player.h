@@ -9,6 +9,7 @@
 #include <QPainter>
 #include <QElapsedTimer>
 #include "bullet.h"
+#include "ultimate.h"
 class Player : public QObject, public QGraphicsRectItem
 {
     Q_OBJECT
@@ -35,9 +36,13 @@ public:
     bool tryUseUltimate();
     int getAttackDamage() const { return attackDamage; }
     void setAttackDamage(int val) { attackDamage = val; }
+    bool getIsUltimateReady() const { return isUltimateReady; }
     //void updateFromJoystick(double angle, double vitesse, bool tir);
-    void updateFromJoystick(qreal axisX, qreal axisY, bool isShooting);
+    void processMovement();
+    void updateFromJoystick(double axisX, double axisY, bool tir, bool ulti);
     void shoot();
+    void setUseJoystick(bool state) { useJoystick = state; }
+    void launchUltimate();
     //void setWeapon(WeaponType type) { currentWeapon = type; }
    // WeaponType getWeapon() const { return currentWeapon; }
 
@@ -48,6 +53,7 @@ signals:
     void healthChanged(int health, int maxHealth);
     void died();
     void bulletFired(Bullet *bullet);
+    void requestUltimate();
 
 private:
     QPixmap sprite;
@@ -66,6 +72,10 @@ private:
     QElapsedTimer lastShotTimer;
     int msBetweenShots = 200; // 200ms = 5 balles par seconde max
    // WeaponType currentWeapon = Normal;
+    double joyX = 0;
+    double joyY = 0;
+    bool isFiring = false;
+    bool isUltiPressed = false;
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr);

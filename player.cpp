@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QDebug>
 #include "bullet.h"
+#include "ultimate.h"
 
 Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
 {
@@ -24,8 +25,8 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
     wPressed = aPressed = sPressed = dPressed = false;
     angle = 0;
     speed = 5.0;
-    health = 20;
-    maxHealth = 20;
+    health = 1000;
+    maxHealth = 1000;
     knockbackVelocity = QPointF(0, 0);
     invincibilityFrames = 0;
     lastShotTimer.start();
@@ -38,7 +39,7 @@ void Player::keyPressEvent(QKeyEvent *event)
         qDebug() << "BLOQUÉ !";
         return;
     }
-    qDebug() << "CLAVIER ACTIF";
+    qDebug() << "CLAVIER ACTIF" << useJoystick;
     if (event->key() == Qt::Key_W) wPressed = true;
     if (event->key() == Qt::Key_A) aPressed = true;
     if (event->key() == Qt::Key_S) sPressed = true;
@@ -211,33 +212,66 @@ void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
     painter->drawPixmap(rect().topLeft(), sprite);
 }
 
-void Player::updateFromJoystick(double axisX, double axisY, bool tir)
+void Player::updateFromJoystick(double axisX, double axisY, bool tir, bool ulti)
 {
-    //  Gérer le mouvement fluide
-    qreal speed = 5.0; // Ta vitesse max
-
-    // On déplace le joueur en fonction de l'inclinaison du joystick
-    this->setPos(x() + (axisX * speed), y() + (axisY * speed));
-
-    //  Gérer la rotation
-    if (qAbs(axisX) > 0.1 || qAbs(axisY) > 0.1) { // Zone morte pour éviter de trembler
-        qreal angle = qAtan2(axisY, axisX) * 180 / M_PI;
-        setRotation(angle);
-    }
-
-    // Gérer le tir
-    if (tir) {
-        //this->shoot();
-        if (lastShotTimer.elapsed() > msBetweenShots) {
-            this->shoot();
-            lastShotTimer.restart(); // On remet le compteur à zéro
-        }
-    }
+    this->joyX = axisX;
+    this->joyY = axisY;
+    this->isFiring = tir;
+	this->isUltiPressed = ulti;
 }
 
 void Player::shoot() {
     // On utilise pos() pour la position et l'angle actuel du vaisseau
-    Bullet *bullet = new Bullet(this->pos(), this->angle);
+    Bullet *bullet = new Bullet(this->pos(), this->rotation());
 
     emit bulletFired(bullet);
+}
+void Player::launchUltimate() {
+    qDebug() << "Tentative d'apparition de l'ultime...";
+
+    //  Calculer la position 
+    QPointF spawnPos = this->scenePos();
+
+    //  Créer l'objet
+    Ultimate* myUltimate = new Ultimate(spawnPos, this->rotation(), true, this, nullptr, false);
+
+    // Vérifier la scène 
+    QGraphicsScene* currentScene = this->scene();
+    if (currentScene) {
+        currentScene->addItem(myUltimate);
+        myUltimate->setZValue(101);
+        qDebug() << "Succès : Ultime ajouté à la scène à : " << spawnPos;
+    }
+    else {
+        qDebug() << "ERREUR : Impossible de trouver la scène !";
+    }
+
+    this->isUltimateReady = false;
+}
+void Player::processMovement()
+{
+    qreal speed = 8.0; 
+
+    // Mouvement basé sur les dernières valeurs reçues
+    if (qAbs(joyX) > 0.1 || qAbs(joyY) > 0.1) {
+        this->setPos(x() + (joyX * speed), y() + (joyY * speed));
+
+        qreal targetAngle = qAtan2(joyY, joyX) * 180 / M_PI;
+        this->setRotation(targetAngle);
+    }
+
+    // Tir 
+    if (isFiring) {
+        if (lastShotTimer.elapsed() > 100) {
+            this->shoot();
+            lastShotTimer.restart();
+        }
+    }
+    if (isUltiPressed && isUltimateReady) {
+        this->isUltimateReady = false;
+        emit requestUltimate();
+        //this->launchUltimate();
+
+        qDebug() << "ULTIME DÉPLOYÉ !";
+    }
 }

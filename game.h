@@ -62,6 +62,7 @@ private:
     int lastBossLevel = 0;
     int bossSpawnTimer;
     ArduinoManager *arduino;
+    int currentBossID = 0;
 
     void spawnSpaceObject();
     void spawnEnemy();
