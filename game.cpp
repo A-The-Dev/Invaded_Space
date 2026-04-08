@@ -7,6 +7,7 @@
 #include <QDebug>
 #include "arduinomanager.h"
 #include <QFocusEvent>
+#include <QResizeEvent>
 
 Game::Game(QWidget *parent) : QGraphicsView(parent)
 {
@@ -22,7 +23,7 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     // Set view properties
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    setFixedSize(800, 600);
+    resize(800, 600);
 
     // Enable mouse tracking
     setMouseTracking(true);
@@ -68,6 +69,7 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     connect(collisionManager, &CollisionManager::enemyDestroyed, this, &Game::onEnemyDestroyed);
     connect(collisionManager, &CollisionManager::playerHitEnemy, this, &Game::onPlayerHit);
     connect(collisionManager, &CollisionManager::playerHitBoss, this, &Game::onPlayerHit);
+
     // Connect player signals
     connect(player, &Player::died, this, &Game::onPlayerDied);
     connect(player, &Player::healthChanged, this, [this](int health, int maxHealth) {
@@ -103,7 +105,7 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     timer->start(16); // ~60 FPS
 
     // Set window title
-    setWindowTitle("Invaded Space - WASD to move, Mouse to aim, Click to shoot");
+    setWindowTitle("Invaded Space - WASD to move, Click to shoot");
 }
 
 void Game::spawnSpaceObject()
@@ -224,6 +226,12 @@ void Game::keyPressEvent(QKeyEvent *event)
         if (player->tryUseUltimate()) {
             triggerScreenClear();
         }
+    }
+
+    // Toggle fullscreen with F11
+    if (event->key() == Qt::Key_F11)
+    {
+        toggleFullscreen();
     }
 }
 
@@ -738,12 +746,15 @@ void Game::updateGame()
 
     // Update all bullets (use index-based loop to avoid detachment warning)
     QList<Bullet*> bulletsToRemove;
+    int viewW = viewport() ? viewport()->width() : 800;
+    int viewH = viewport() ? viewport()->height() : 600;
+
     for (int i = 0; i < bullets.size(); ++i)
     {
         bullets[i]->move();
 
         // Check if bullet is off screen
-        if (collisionManager->isOffScreen(bullets[i], cameraTarget, 800, 600))
+        if (collisionManager->isOffScreen(bullets[i], cameraTarget, viewW, viewH))
         {
             bulletsToRemove.append(bullets[i]);
         }
@@ -778,4 +789,32 @@ void Game::updateGame()
     // LIGNE DE TEST TEMPORAIRE :
     // On simule un mouvement vers la droite (0 rad) à pleine vitesse et un tir
     // player->updateFromJoystick(0.0, 1.0, false);
+}
+
+void Game::resizeEvent(QResizeEvent *event)
+{
+    Q_UNUSED(event);
+    // Keep camera centered and update HUD when the view size changes
+    centerOn(cameraTarget);
+    if (hud) hud->updatePosition(cameraTarget, player->pos());
+    QGraphicsView::resizeEvent(event);
+}
+
+void Game::toggleFullscreen()
+{
+    if (!isFullscreen)
+    {
+        // enter fullscreen: save previous geometry to restore later
+        previousGeometry = geometry();
+        showFullScreen();
+        isFullscreen = true;
+    }
+    else
+    {
+        // exit fullscreen: restore previous windowed geometry
+        showNormal();
+        if (!previousGeometry.isNull())
+            setGeometry(previousGeometry);
+        isFullscreen = false;
+    }
 }

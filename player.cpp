@@ -60,10 +60,10 @@ void Player::setEnemyLists(const QList<Enemy*> *enemiesList, const QList<Boss*> 
 void Player::keyPressEvent(QKeyEvent *event)
 {
     if (useJoystick){
-        qDebug() << "BLOQUÉ !";
+        //qDebug() << "BLOQUÉ !";
         return;
     }
-    qDebug() << "CLAVIER ACTIF";
+    //qDebug() << "CLAVIER ACTIF";
     if (event->key() == Qt::Key_W) wPressed = true;
     if (event->key() == Qt::Key_A) aPressed = true;
     if (event->key() == Qt::Key_S) sPressed = true;

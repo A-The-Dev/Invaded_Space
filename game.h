@@ -31,6 +31,7 @@ protected:
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
     void focusOutEvent(QFocusEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 public slots:
     void updateGame();
@@ -42,6 +43,7 @@ public slots:
     void onLevelUp(int level);
     void onXPOrbCollected(XPOrb *orb);
     void onBossUltimate(QPointF position, qreal angle, bool isBoss);
+    void toggleFullscreen();
 
 private:
     QGraphicsScene *scene;
@@ -63,6 +65,9 @@ private:
     int lastBossLevel = 0;
     int bossSpawnTimer;
     ArduinoManager *arduino;
+
+    bool isFullscreen = false;
+    QRect previousGeometry;
 
     void spawnSpaceObject();
     void spawnEnemy();
