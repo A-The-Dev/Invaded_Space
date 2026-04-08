@@ -21,7 +21,9 @@ HEADERS     += arduinomanager.h \
                ultimate.h \
                upgrade_menu.h \
                weaponpowerup.h \
-               xporb.h
+               xporb.h \
+               Leaderboard.h \
+               JsonParser.h
 
 # Source files
 SOURCES     += arduinomanager.cpp \
@@ -40,7 +42,9 @@ SOURCES     += arduinomanager.cpp \
                ultimate.cpp \
                upgrade_menu.cpp \
                weaponpowerup.cpp \
-               xporb.cpp
+               xporb.cpp \
+               Leaderboard.cpp \
+               JsonParser.cpp
 
 # UI files
 FORMS       += mainwindow.ui
