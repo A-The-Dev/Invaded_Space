@@ -9,7 +9,10 @@
 #include <QFocusEvent>
 #include <QResizeEvent>
 
-Game::Game(QWidget *parent) : QGraphicsView(parent)
+Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
+    scene(nullptr), player(nullptr), timer(nullptr),
+    collisionManager(nullptr), hud(nullptr), levelSystem(nullptr),
+    arduino(nullptr), m_gameStarted(false)
 {
     // Create scene with larger area for free movement
     scene = new QGraphicsScene(this);
@@ -37,30 +40,16 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     player->setEnemyLists(&enemies, &bosses);
 
     arduino = new ArduinoManager(this);
-   // arduino->connectToArduino("COM3");
+    // attempt connection if desired (safe to leave)
     if (arduino->connectToArduino("COM3")) {
         qDebug() << "Connexion Arduino REUSSIE sur COM3";
-
-        // ACTIVE LE MODE JOYSTICK ICI
         player->setUseJoystick(true);
-
-        // Si la variable est dans ton Player, fais ceci :
-        // player->setUseJoystick(true); 
-
-    }
-    else {
+    } else {
         qDebug() << "Connexion Arduino ECHOUEE. Mode clavier actif.";
         player->setUseJoystick(false);
     }
-    if (arduino->connectToArduino("COM3")) {
-        // On attend 2 secondes que l'Arduino finisse de rebooter avant d'envoyer
-        /*QTimer::singleShot(2000, this, [this](){
-            arduino->sendGameState(levelSystem->getLevel(), 1);
-        });*/
-    }
 
-    // 1. Reçoit les données de l'Arduino et fait bouger/tirer le joueur
-        //connect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
+    // Receive Arduino commands (if connected)
     connect(arduino, &ArduinoManager::commandReceived, this, [this](double x, double y, bool tir, bool ulti) {
         player->updateFromJoystick(x, y, tir, ulti);
     });
@@ -71,12 +60,13 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
         bullets.append(b);
     });
     connect(player, &Player::requestUltimate, this, &Game::triggerScreenClear);
+
     // Initialize camera
     cameraTarget = player->pos();
     cameraSmoothing = 0.1;  // Lower = smoother/slower, Higher = faster
     centerOn(player);
 
-    // Initialize spawn timer
+    // Initialize spawn timer counters
     spawnTimer = 0;
     enemySpawnTimer = 0;
     bossSpawnTimer = 0;
@@ -90,7 +80,7 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     // Connect player signals
     connect(player, &Player::died, this, &Game::onPlayerDied);
     connect(player, &Player::healthChanged, this, [this](int health, int maxHealth) {
-        hud->updateHealth(health, maxHealth);
+        if (hud) hud->updateHealth(health, maxHealth);
     });
 
     // Create HUD
@@ -104,6 +94,17 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     hud->updateLevel(levelSystem->getLevel());
     hud->updateXP(levelSystem->getCurrentXP(), levelSystem->getXPForNextLevel());
 
+    // If not paused, start gameplay immediately, otherwise wait for explicit startGame() call.
+    if (!startPaused) {
+        startGame();
+    }
+}
+
+void Game::startGame()
+{
+    if (m_gameStarted) return;
+    m_gameStarted = true;
+
     // Spawn initial space objects
     for (int i = 0; i < 50; ++i)
     {
@@ -116,7 +117,7 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
         spawnEnemy();
     }
 
-    // Create timer for game loop
+    // Create timer for game loop and start it
     timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &Game::updateGame);
     timer->start(16); // ~60 FPS
@@ -636,7 +637,7 @@ void Game::updateGame()
         QList<XPOrb*> neighbors;
         neighbors.append(a);
 
-        for (int j = 0; j < xpOrbs.size(); ++j)
+        for (int j = 0; j < xpOrbs.size(); j++)
         {
             if (i == j) continue;
             XPOrb* b = xpOrbs[j];

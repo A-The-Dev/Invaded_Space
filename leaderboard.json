@@ -78,5 +78,21 @@
         "lvl": 1,
         "name": "",
         "score": 20
+    },
+    {
+        "atk": 1,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 1,
+        "name": "",
+        "score": 10
+    },
+    {
+        "atk": 1,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 1,
+        "name": "",
+        "score": 0
     }
 ]
