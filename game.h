@@ -25,9 +25,11 @@ class Game : public QGraphicsView
 {
     Q_OBJECT
 public:
-    Game(QWidget *parent = nullptr);
+    // If startPaused is true the game loop / spawns won't start until startGame() is called.
+    explicit Game(QWidget *parent = nullptr, bool startPaused = false);
 
-
+    // Start the game loop and initial spawns (call when menu Start pressed).
+    void startGame();
 
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -75,6 +77,9 @@ private:
     bool isFullscreen = false;
     QRect previousGeometry;
     int currentBossID = 0;
+
+    // tracks whether startGame() already ran
+    bool m_gameStarted = false;
 
     void spawnSpaceObject();
     void spawnEnemy();

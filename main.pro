@@ -24,7 +24,8 @@ HEADERS     += arduinomanager.h \
                xporb.h \
                Leaderboard.h \
                JsonParser.h \
-	       Grenades.h
+               menu.h \
+	           Grenades.h
 
 # Source files
 SOURCES     += arduinomanager.cpp \
@@ -46,7 +47,8 @@ SOURCES     += arduinomanager.cpp \
                xporb.cpp \
                Leaderboard.cpp \
                JsonParser.cpp \
-	       Grenades.cpp
+               menu.cpp \
+	           Grenades.cpp
 
 # UI files
 FORMS       += mainwindow.ui
