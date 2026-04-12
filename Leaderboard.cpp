@@ -6,7 +6,8 @@
 #include <QWheelEvent>
 #include <QScrollBar>
 
-Leaderboard::Leaderboard(QWidget* parent) : QWidget(parent) {
+Leaderboard::Leaderboard(QWidget* parent) : QWidget(parent)
+{
     setFixedSize(620, 500);
     setStyleSheet("background-color: rgba(15, 15, 15, 240); border: 2px solid white; border-radius: 10px;");
 
@@ -51,7 +52,9 @@ bool Leaderboard::eventFilter(QObject* watched, QEvent* event) {
     }
     return QWidget::eventFilter(watched, event);
 }
-QFrame* Leaderboard::createEntryWidget(const QJsonObject& obj) {
+
+QFrame* Leaderboard::createEntryWidget(const QJsonObject& obj) 
+{
     QFrame* frame = new QFrame();
     frame->setFixedSize(550, 110);
     frame->setStyleSheet("QFrame { border: 2px solid white; background-color: #121212; margin-bottom: 10px; border-radius: 5px; }"
@@ -75,10 +78,12 @@ QFrame* Leaderboard::createEntryWidget(const QJsonObject& obj) {
     // Test 3 : Dossier parent (souvent nécessaire en mode Debug avec Visual Studio)
     if (playerImg.isNull()) playerImg.load("./resources/spaceship.png");
 
-    if (!playerImg.isNull()) {
+    if (!playerImg.isNull()) 
+    {
         iconLabel->setPixmap(playerImg.scaled(60, 60, Qt::KeepAspectRatio, Qt::FastTransformation));
     }
-    else {
+    else 
+    {
         iconLabel->setText("ERR"); // Affiche ERR si l'image est introuvable
         iconLabel->setStyleSheet("color: red; font-weight: bold; border: 1px solid red;");
     }

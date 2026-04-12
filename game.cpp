@@ -71,6 +71,11 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
         bullets.append(b);
     });
     connect(player, &Player::requestUltimate, this, &Game::triggerScreenClear);
+
+	connect(player, &Player::grenadeThrown, this, [this](Grenades* g) 
+        {
+            scene->addItem(g);
+        });
     // Initialize camera
     cameraTarget = player->pos();
     cameraSmoothing = 0.1;  // Lower = smoother/slower, Higher = faster
@@ -115,6 +120,7 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     {
         spawnEnemy();
     }
+	player->setGrenadeCount(3); // Start with 3 grenades
 
     // Create timer for game loop
     timer = new QTimer(this);
@@ -238,6 +244,17 @@ void Game::mousePressEvent(QMouseEvent *event)
         // Use Player::shoot() so auto-aim is applied and rate limiting is respected.
         player->shoot();
     }
+    else if(event->button() == Qt::RightButton)
+    {
+        // use player::throwgrenade()
+        if (player->getGrenadeCount() > 0)
+        {
+            player->throwGrenade();
+			player->setGrenadeCount(player->getGrenadeCount() - 1);
+        }
+            
+
+	}
 }
 
 void Game::keyPressEvent(QKeyEvent *event)
@@ -249,6 +266,7 @@ void Game::keyPressEvent(QKeyEvent *event)
             triggerScreenClear();
         }
     }
+    
 
     // Toggle fullscreen with F11
     if (event->key() == Qt::Key_F11)
@@ -259,7 +277,7 @@ void Game::keyPressEvent(QKeyEvent *event)
 
 void Game::triggerScreenClear()
 {
-
+	UltUsed = true;
     while (!enemies.isEmpty())
     {
         Enemy* e = enemies.takeFirst();
@@ -302,7 +320,8 @@ void Game::triggerScreenClear()
         delete flash;
     });
 
-
+	UltUsed = false;
+    hud->updateUltimate(player->getUltimatePercentage());
 }
 void Game::keyReleaseEvent(QKeyEvent *event)
 {
@@ -321,8 +340,16 @@ void Game::onEnemyDestroyed(Enemy *enemy)
     enemies.removeOne(enemy);
     scene->removeItem(enemy);
     enemy->deleteLater();
-    player->gainUltimateCharge(5.0); //Un ultimate par 20 enemy
-    hud->updateUltimate(player->getUltimatePercentage());
+    if (UltUsed == true)
+    {
+		player->resetUltimateCharge();
+    }
+	else if (UltUsed == false)
+    {
+        player->gainUltimateCharge(5.0); //Un ultimate par 20 enemy
+        hud->updateUltimate(player->getUltimatePercentage());
+    }
+
 }
 void Game::onBossDestroyed(Boss *boss)
 {
@@ -336,8 +363,15 @@ void Game::onBossDestroyed(Boss *boss)
     bosses.removeOne(boss);
     scene->removeItem(boss);
     boss->deleteLater();
-    player->gainUltimateCharge(5.0); //Un ultimate par 20 enemy
-    hud->updateUltimate(player->getUltimatePercentage());
+    if (UltUsed == true)
+    {
+        player->resetUltimateCharge();
+    }
+    else if(UltUsed == false)
+    {
+        player->gainUltimateCharge(5.0); //Un ultimate par 20 enemy
+        hud->updateUltimate(player->getUltimatePercentage());
+    }
 }
 
 void Game::onPlayerHit(Enemy *enemy)
@@ -512,7 +546,6 @@ void Game::updateGame()
 {
     // Update player
     player->update();
-
     // Smooth camera follow
     QPointF playerPos = player->pos();
     cameraTarget.setX(cameraTarget.x() + (playerPos.x() - cameraTarget.x()) * cameraSmoothing);
@@ -806,11 +839,45 @@ void Game::updateGame()
     for (int i = 0; i < bullets.size(); ++i)
     {
         bullets[i]->move();
-
+        
         // Check if bullet is off screen
         if (collisionManager->isOffScreen(bullets[i], cameraTarget, viewW, viewH))
         {
             bulletsToRemove.append(bullets[i]);
+        }
+    }
+
+
+    for (int i = player->getActiveGrenades().size() - 1; i >= 0; --i) {
+        Grenades* g = player->getActiveGrenades()[i];
+        g->move();
+
+        if (g->getIsExploding()) {
+            // Area of Effect (AoE) Damage Logic
+            for (int j = enemies.size() - 1; j >= 0; --j) {
+                Enemy* e = enemies[j];
+                // Check distance between grenade center and enemy
+                qreal dist = QLineF(g->pos(), e->pos()).length();
+
+                if (dist < g->rect().width() / 2) { // Inside explosion radius
+                    onEnemyDestroyed(e); // Or e->takeDamage(40) if enemies have HP
+                }
+            }
+
+            // Also check Bosses
+            for (Boss* b : bosses) {
+                if (QLineF(g->pos(), b->pos()).length() < g->rect().width() / 2) {
+                    b->takeDamage(40);
+                }
+            }
+        }
+
+        // Cleanup: If the grenade object was marked for deletion by its own timer
+        // Note: It's safer to check g->scene() == nullptr or a custom flag
+        if (g->isFinished()) {
+            player->removeActiveGrenade(i);
+            scene->removeItem(g);
+            delete g;
         }
     }
 

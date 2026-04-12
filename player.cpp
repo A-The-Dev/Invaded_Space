@@ -50,6 +50,10 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
     lastShotTimer.start();
     attackDamage = 1;
     aimHoldFrames = 0;
+    grenadeRefillTimer = new QTimer(this);
+    connect(grenadeRefillTimer, &QTimer::timeout, this, &Player::refillGrenade);
+	grenadeRefillTimer->start(10000); // 10 seconds (10000 ms)
+    numberofgrenades = maxGrenades;
 }
 
 void Player::setEnemyLists(const QList<Enemy*> *enemiesList, const QList<Boss*> *bossesList)
@@ -97,7 +101,12 @@ void Player::updateRotation(QPointF /*mousePos*/)
 {
     // intentionally empty to prevent mouse from changing ship rotation
 }
-
+void Player::refillGrenade() 
+{
+    if (numberofgrenades < maxGrenades) {
+        numberofgrenades++;
+    }
+}
 void Player::setSpeed(qreal s)
 {
     qreal newSpeed = s;
@@ -366,7 +375,89 @@ void Player::shoot() {
 
     lastShotTimer.restart();
 }
+void Player::throwGrenade() 
+{
+    if (lastShotTimer.elapsed() < msBetweenShots) return;
+	if (numberofgrenades <= 0) return; // Plus de grenades disponibles
+    if (lastShotTimer.elapsed() < msBetweenShots) return;
+    qreal targetAngle = desiredAngle;
+    QPointF myPos = pos();
 
+    bool found = false;
+    qreal bestDist2 = std::numeric_limits<qreal>::infinity();
+    qreal bestHP = -std::numeric_limits<qreal>::infinity();
+    QPointF chosenPos;
+
+    auto considerTarget = [&](QPointF p, qreal hp) {
+        qreal dx = p.x() - myPos.x();
+        qreal dy = p.y() - myPos.y();
+        qreal d2 = dx * dx + dy * dy;
+
+        if (targetByHP) {
+            if (hp > bestHP || (qFuzzyCompare(hp, bestHP) && d2 < bestDist2)) {
+                bestHP = hp;
+                bestDist2 = d2;
+                chosenPos = p;
+                found = true;
+            }
+        }
+        else {
+            if (d2 < bestDist2) {
+                bestDist2 = d2;
+                chosenPos = p;
+                found = true;
+            }
+        }
+        };
+
+    if (gameEnemies || gameBosses) {
+        if (gameEnemies) {
+            for (Enemy* e : *gameEnemies) {
+                if (!e) continue;
+                considerTarget(e->pos(), static_cast<qreal>(e->getHealth()));
+            }
+        }
+        if (gameBosses) {
+            for (Boss* b : *gameBosses) {
+                if (!b) continue;
+                considerTarget(b->pos(), static_cast<qreal>(b->getHealth()));
+            }
+        }
+    }
+    else {
+        QGraphicsScene* sc = scene();
+        if (sc) {
+            const QList<QGraphicsItem*> items = sc->items();
+            for (QGraphicsItem* it : items) {
+                Enemy* e = dynamic_cast<Enemy*>(it);
+                if (e) {
+                    considerTarget(e->pos(), static_cast<qreal>(e->getHealth()));
+                    continue;
+                }
+                Boss* b = dynamic_cast<Boss*>(it);
+                if (b) {
+                    considerTarget(b->pos(), static_cast<qreal>(b->getHealth()));
+                }
+            }
+        }
+    }
+
+    if (found) {
+        qreal dx = chosenPos.x() - myPos.x();
+        qreal dy = chosenPos.y() - myPos.y();
+        targetAngle = qAtan2(dy, dx) * 180.0 / M_PI;
+
+        desiredAngle = targetAngle;
+        aimHoldFrames = 12;
+        rotationSpeedCurrent = aimRotationSpeed;
+    }
+    Grenades* grenade = new Grenades(this->pos(), targetAngle);
+    activeGrenades.append(grenade);
+    emit grenadeThrown(grenade);
+
+    numberofgrenades--;
+    lastShotTimer.restart();
+}
 void Player::launchUltimate() {
     //qDebug() << "Tentative d'apparition de l'ultime...";
 
@@ -412,7 +503,13 @@ void Player::processMovement()
         //this->launchUltimate();
     }
 }
-
+void Player::removeActiveGrenade(int index) 
+{
+    if (index >= 0 && index < activeGrenades.size()) 
+    {
+        activeGrenades.removeAt(index);
+    }
+}
 
 // resetInputStates implementation
 void Player::resetInputStates()

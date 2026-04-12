@@ -11,6 +11,7 @@
 #include <QList>
 #include "bullet.h"
 #include "ultimate.h"
+#include "Grenades.h"
 
 class Enemy;
 class Boss;
@@ -41,6 +42,7 @@ public:
     void gainUltimateCharge(float amount);
     float getUltimatePercentage() const { return ultimateCharge / maxUltimateCharge; }
     bool tryUseUltimate();
+	void resetUltimateCharge() { ultimateCharge = 0; isUltimateReady = false; }
     int getAttackDamage() const { return attackDamage; }
     void setAttackDamage(int val) { attackDamage = val; }
     bool getIsUltimateReady() const { return isUltimateReady; }
@@ -49,6 +51,9 @@ public:
 	void setPlayerName(const string& name) { playerName = name; }
 	string getPlayerName() const { return playerName; }
     void shoot();
+
+    QList<Grenades*>& getActiveGrenades() { return activeGrenades; }
+    void removeActiveGrenade(int index);
 
     qreal getSpeed() const { return speed; }
     void setSpeed(qreal s);
@@ -59,21 +64,25 @@ public:
 
     // Provide access to game enemy lists so player can target reliably
     void setEnemyLists(const QList<Enemy*> *enemiesList, const QList<Boss*> *bossesList);
-
+    int getGrenadeCount() { return numberofgrenades; }
+    void setGrenadeCount(int newgrenadecount) { numberofgrenades = newgrenadecount; }
     // Reset movement/input state (call when focus lost / modal shown)
     void resetInputStates();
     void setUseJoystick(bool state) { useJoystick = state; }
     void launchUltimate();
+	void throwGrenade();
     //void setWeapon(WeaponType type) { currentWeapon = type; }
    // WeaponType getWeapon() const { return currentWeapon; }
 
+
 public slots:
     void update();
-
+    void refillGrenade();
 signals:
     void healthChanged(int health, int maxHealth);
     void died();
     void bulletFired(Bullet *bullet);
+	void grenadeThrown(Grenades* grenade);
     void requestUltimate();
 
 private:
@@ -84,7 +93,8 @@ private:
     qreal rotationSpeedCurrent; // current degrees-per-frame rotation speed
     qreal rotationSpeedDefault; // default smoothing speed
     qreal aimRotationSpeed;     // faster rotation when aiming at a target
-
+    QTimer* grenadeRefillTimer;
+    int maxGrenades = 5;
 	string playerName;
     qreal speed;
     qreal maxSpeed;
@@ -99,10 +109,10 @@ private:
     bool useJoystick = false;
     QElapsedTimer lastShotTimer;
     int msBetweenShots = 200; // 200ms = 5 balles par seconde max
-
+    int numberofgrenades;
     // New: toggle between nearest target and highest-HP target
     bool targetByHP = false;
-
+    QList<Grenades*> activeGrenades;
     // Pointers to the Game lists (not owned)
     const QList<Enemy*> *gameEnemies = nullptr;
     const QList<Boss*>  *gameBosses  = nullptr;

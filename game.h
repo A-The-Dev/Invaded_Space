@@ -70,6 +70,7 @@ private:
     int bossSpawnTimer;
     ArduinoManager *arduino;
     int currentScore = 0;
+    bool UltUsed = false;
 
     bool isFullscreen = false;
     QRect previousGeometry;
