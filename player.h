@@ -65,7 +65,7 @@ public:
     // Provide access to game enemy lists so player can target reliably
     void setEnemyLists(const QList<Enemy*> *enemiesList, const QList<Boss*> *bossesList);
     int getGrenadeCount() { return numberofgrenades; }
-    void setGrenadeCount(int newgrenadecount) { numberofgrenades = newgrenadecount; }
+    void setGrenadeCount(int newgrenadecount);
     // Reset movement/input state (call when focus lost / modal shown)
     void resetInputStates();
     void setUseJoystick(bool state) { useJoystick = state; }
@@ -84,6 +84,7 @@ signals:
     void bulletFired(Bullet *bullet);
 	void grenadeThrown(Grenades* grenade);
     void requestUltimate();
+    void grenadeCountChanged(int newCount);
 
 private:
     QPixmap sprite;
@@ -116,7 +117,8 @@ private:
     // Pointers to the Game lists (not owned)
     const QList<Enemy*> *gameEnemies = nullptr;
     const QList<Boss*>  *gameBosses  = nullptr;
-
+    QElapsedTimer grenadeShotTimer;
+    int msBetweenGrenades = 800;
     // Hold rotation toward target for a short time after shooting so movement doesn't immediately override it
     int aimHoldFrames = 0;
    // WeaponType currentWeapon = Normal;

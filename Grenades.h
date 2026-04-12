@@ -29,12 +29,10 @@ private:
     qreal speed;
     int damage;
 
-    // State Control
     bool isExploding = false;
     bool finished = false;
     int explosionTimer = 0;
 
-    // Movement Control
     qreal distanceTraveled = 0;
     qreal maxDistance = 200.0;
 

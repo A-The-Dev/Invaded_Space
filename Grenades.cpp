@@ -5,7 +5,7 @@
 Grenades::Grenades(QPointF startPos, qreal angle, QGraphicsItem* parent)
     : QGraphicsEllipseItem(parent), angle(angle), speed(5.0), damage(40)
 {
-    setRect(-15, -15, 30, 30); // Start as a small grenade
+    setRect(-15, -15, 30, 30); 
     setZValue(100);
     setPos(startPos);
 
@@ -24,7 +24,6 @@ void Grenades::move()
         qreal grow = 4.0;
         setRect(rect().adjusted(-grow, -grow, grow, grow));
 
-        // After 30 frames (~0.5s), mark as finished for removal
         if (explosionTimer > 30) {
             finished = true;
             this->deleteLater();
@@ -32,7 +31,6 @@ void Grenades::move()
         return;
     }
 
-    // Standard projectile movement
     qreal radians = angle * M_PI / 180.0;
     qreal dx = qCos(radians) * speed;
     qreal dy = qSin(radians) * speed;
@@ -40,11 +38,10 @@ void Grenades::move()
     setPos(x() + dx, y() + dy);
     distanceTraveled += speed;
 
-    // Transition to explosion state
+
     if (distanceTraveled >= maxDistance) {
         isExploding = true;
         speed = 0;
-        // Try to load explosion sprite, or it will fall back to red circle in paint()
         sprite = QPixmap("./resources/grenadeExplosion.png");
     }
 }
@@ -62,7 +59,7 @@ void Grenades::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, 
         painter->drawPixmap(rect().toRect(), sprite);
     }
     else {
-        // Red glow effect if sprite is missing or for the explosion
+        
         painter->setBrush(isExploding ? QColor(255, 50, 50, 150) : Qt::red);
         painter->setPen(QPen(Qt::white, 2));
         painter->drawEllipse(rect());

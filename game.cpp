@@ -14,7 +14,7 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     // Create scene with larger area for free movement
     scene = new QGraphicsScene(this);
     scene->setSceneRect(-1000, -1000, 2000, 2000);
-
+    hud = new HUD(scene, this);
     // Set space-themed background
     scene->setBackgroundBrush(QBrush(QColor(10, 10, 30)));
 
@@ -65,6 +65,11 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
         player->updateFromJoystick(x, y, tir, ulti);
     });
 
+    connect(player, &Player::grenadeCountChanged, hud, &HUD::updateGrenades);
+
+    hud->updateGrenades(player->getGrenadeCount());
+
+
     // 2. Reçoit la balle créée par le joueur et l'ajoute à la liste de collision
     connect(player, &Player::bulletFired, this, [this](Bullet* b){
         scene->addItem(b);
@@ -92,6 +97,8 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     connect(collisionManager, &CollisionManager::playerHitEnemy, this, &Game::onPlayerHit);
     connect(collisionManager, &CollisionManager::playerHitBoss, this, &Game::onPlayerHit);
 
+
+
     // Connect player signals
     connect(player, &Player::died, this, &Game::onPlayerDied);
     connect(player, &Player::healthChanged, this, [this](int health, int maxHealth) {
@@ -99,7 +106,7 @@ Game::Game(QWidget *parent) : QGraphicsView(parent)
     });
 
     // Create HUD
-    hud = new HUD(scene, this);
+
     hud->updateHealth(player->getHealth(), player->getMaxHealth());
 
     // Create level system
@@ -246,14 +253,7 @@ void Game::mousePressEvent(QMouseEvent *event)
     }
     else if(event->button() == Qt::RightButton)
     {
-        // use player::throwgrenade()
-        if (player->getGrenadeCount() > 0)
-        {
-            player->throwGrenade();
-			player->setGrenadeCount(player->getGrenadeCount() - 1);
-        }
-            
-
+        player->throwGrenade();
 	}
 }
 

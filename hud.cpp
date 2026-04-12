@@ -74,54 +74,80 @@ HUD::HUD(QGraphicsScene *scene, QObject *parent) : QObject(parent), scene(scene)
     ultimatePulseTimer->setInterval(160);
     connect(ultimatePulseTimer, &QTimer::timeout, this, &HUD::onUltimatePulse);
     ultimatePulseGrowing = false;
+    for (int i = 0; i < maxGrenades; ++i) 
+    {
+        QGraphicsRectItem* segment = new QGraphicsRectItem();
+        segment->setRect(0, 0, 10, 4); 
+        segment->setBrush(QBrush(QColor(255, 165, 0))); 
+        segment->setPen(Qt::NoPen);
+        segment->setZValue(2005);
+        scene->addItem(segment);
+        grenadeSegments.append(segment);
+    }
 }
 
 void HUD::updatePosition(QPointF cameraPos, QPointF playerPos)
 {
-    static QPointF smoothCam = cameraPos;
-    qreal smoothing = 0.45;
-
-    smoothCam.setX(smoothCam.x() + (cameraPos.x() - smoothCam.x()) * smoothing);
-    smoothCam.setY(smoothCam.y() + (cameraPos.y() - smoothCam.y()) * smoothing);
-
+    // 1. Setup constants for spacing
     qreal barWidth = 60;
     qreal barHeight = 6;
-    qreal xpThin = 4.0;
-
+    qreal spacing = 4; // Space between elements
     qreal centerX = playerPos.x();
-    qreal levelY = playerPos.y() - 100;
 
-    qreal ultY = playerPos.y() - 52;
-    qreal healthY = playerPos.y() - 68;
-    qreal xpY = healthY + barHeight - (xpThin / 2.0);
+    // 2. Define Y-coordinates (Stacked from top to bottom)
+    // We stack them upwards starting from above the player's head
+    qreal currentY = playerPos.y() - 60;
 
-    qreal levelW = 36;
-    qreal levelH = 16;
-    levelBackground->setRect(0, 0, levelW, levelH);
-    levelBackground->setPos(centerX - levelW/2, levelY);
+    // XP Bar (Bottom of the stack)
+    playerXPBackground->setPos(centerX - barWidth / 2, currentY);
+    playerXPFill->setPos(centerX - barWidth / 2, currentY);
+    currentY -= (barHeight + spacing);
 
-    ultimateBackground->setRect(0, 0, barWidth, barHeight);
-    ultimateBackground->setPos(centerX - barWidth/2, ultY);
-    ultimateBar->setPos(centerX - barWidth/2, ultY);
-    ultimateBar->setTransformOriginPoint(barWidth * 0.5, barHeight * 0.5);
+    // Health Bar
+    healthBarBackground->setPos(centerX - barWidth / 2, currentY);
+    healthBarFill->setPos(centerX - barWidth / 2, currentY);
+    currentY -= (barHeight + spacing);
 
-    healthBarBackground->setRect(0, 0, barWidth, barHeight);
-    healthBarBackground->setPos(centerX - barWidth/2, healthY);
-    healthBarFill->setPos(centerX - barWidth/2, healthY);
+    // Ultimate Bar
+    ultimateBackground->setPos(centerX - barWidth / 2, currentY);
+    ultimateBar->setPos(centerX - barWidth / 2, currentY);
+    currentY -= (barHeight + spacing);
 
-    playerXPBackground->setRect(0, 0, barWidth, xpThin);
-    playerXPBackground->setPos(centerX - barWidth/2, xpY);
-    playerXPFill->setPos(centerX - barWidth/2, xpY);
+    // Grenade Segments
+    qreal totalGrenadeWidth = (10 * maxGrenades) + (2 * (maxGrenades - 1));
+    qreal grenadeStartX = centerX - totalGrenadeWidth / 2;
+    for (int i = 0; i < grenadeSegments.size(); ++i) {
+        grenadeSegments[i]->setPos(grenadeStartX + (i * 12), currentY);
+    }
+    currentY -= (12 + spacing); // Move up for text
 
-    qreal textLineY = healthY - 18;
-    qreal healthTextW = healthText->boundingRect().width();
-    qreal healthTextX = centerX - barWidth/2;
-    healthText->setPos(healthTextX, textLineY);
+    // 3. Text Placement (Placed at the very top to avoid overlap)
+    // Center the Health and Level text side-by-side
+    qreal healthW = healthText->boundingRect().width();
+    qreal levelW = levelText->boundingRect().width();
+    qreal totalTextW = healthW + levelW + 10;
 
-    qreal levelTextX = healthTextX + healthTextW + 8;
-    levelText->setPos(levelTextX, textLineY);
+    healthText->setPos(centerX - totalTextW / 2, currentY);
+    levelText->setPos(centerX - totalTextW / 2 + healthW + 10, currentY);
+
+    // Hide the level background if not used
+    levelBackground->setVisible(false);
 }
-
+void HUD::updateGrenades(int count)
+{
+    for (int i = 0; i < grenadeSegments.size(); ++i) 
+    {
+        
+        if (i < count) 
+        {
+            grenadeSegments[i]->setVisible(true);
+        }
+        else 
+        {
+            grenadeSegments[i]->setVisible(false);
+        }
+    }
+}
 void HUD::updateHealth(int health, int maxHealth)
 {
     qreal barWidth = 60;

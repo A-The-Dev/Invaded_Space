@@ -20,9 +20,11 @@ public slots:
     void updateHealth(int health, int maxHealth);
     void updateLevel(int level);
     void updateXP(int currentXP, int xpToNextLevel);
+    void updateGrenades(int count);
 
 private slots:
     void onUltimatePulse();
+
 
 private:
     // Player-attached UI
@@ -37,6 +39,9 @@ private:
     QGraphicsRectItem *playerXPBackground;
     QGraphicsRectItem *playerXPFill;
 
+    // Grenades
+    QList<QGraphicsRectItem*> grenadeSegments;
+    int maxGrenades = 5;
     // Ultimat
     QGraphicsRectItem* ultimateBar;
     QGraphicsRectItem* ultimateBackground;

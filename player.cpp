@@ -28,7 +28,7 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
     if (sprite.isNull()) {
         qDebug() << "Failed to load spaceship.png";
     }
-
+    grenadeShotTimer.start();
     QTransform t;
     t.rotate(90);
     sprite = sprite.transformed(t, Qt::SmoothTransformation);
@@ -54,6 +54,7 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
     connect(grenadeRefillTimer, &QTimer::timeout, this, &Player::refillGrenade);
 	grenadeRefillTimer->start(10000); // 10 seconds (10000 ms)
     numberofgrenades = maxGrenades;
+ 
 }
 
 void Player::setEnemyLists(const QList<Enemy*> *enemiesList, const QList<Boss*> *bossesList)
@@ -103,8 +104,10 @@ void Player::updateRotation(QPointF /*mousePos*/)
 }
 void Player::refillGrenade() 
 {
-    if (numberofgrenades < maxGrenades) {
+    if (numberofgrenades < maxGrenades) 
+    {
         numberofgrenades++;
+        emit grenadeCountChanged(numberofgrenades);
     }
 }
 void Player::setSpeed(qreal s)
@@ -173,13 +176,19 @@ void Player::updateMovement()
     qreal halfWidth = mapWidth / 2;
     qreal halfHeight = mapHeight / 2;
 
+
+
     if (currentPos.x() > halfWidth) setPos(-halfWidth, currentPos.y());
     else if (currentPos.x() < -halfWidth) setPos(halfWidth, currentPos.y());
 
     if (currentPos.y() > halfHeight) setPos(currentPos.x(), -halfHeight);
     else if (currentPos.y() < -halfHeight) setPos(currentPos.x(), halfHeight);
 }
-
+void Player::setGrenadeCount(int newgrenadecount) 
+{
+    numberofgrenades = newgrenadecount;
+    emit grenadeCountChanged(numberofgrenades);
+}
 void Player::takeDamage(int damage)
 {
     // Only take damage if not invincible
@@ -377,9 +386,9 @@ void Player::shoot() {
 }
 void Player::throwGrenade() 
 {
-    if (lastShotTimer.elapsed() < msBetweenShots) return;
-	if (numberofgrenades <= 0) return; // Plus de grenades disponibles
-    if (lastShotTimer.elapsed() < msBetweenShots) return;
+    if (grenadeShotTimer.elapsed() < msBetweenGrenades) return;
+
+    if (numberofgrenades <= 0) return;
     qreal targetAngle = desiredAngle;
     QPointF myPos = pos();
 
@@ -454,9 +463,9 @@ void Player::throwGrenade()
     Grenades* grenade = new Grenades(this->pos(), targetAngle);
     activeGrenades.append(grenade);
     emit grenadeThrown(grenade);
-
     numberofgrenades--;
-    lastShotTimer.restart();
+    emit grenadeCountChanged(numberofgrenades);
+    grenadeShotTimer.restart();
 }
 void Player::launchUltimate() {
     //qDebug() << "Tentative d'apparition de l'ultime...";
