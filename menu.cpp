@@ -57,6 +57,7 @@ Menu::Menu(QWidget *parent)
     m_view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_view->setFrameStyle(QFrame::NoFrame);
     m_view->setRenderHint(QPainter::Antialiasing, false);
+    m_view->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
 
     m_overlayWidget = new QWidget(this);
     m_overlayWidget->setStyleSheet("background: transparent;");

@@ -23,6 +23,10 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
 
     setScene(scene);
 
+    setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+    setCacheMode(QGraphicsView::CacheBackground);
+    setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
+
     // Set view properties
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
