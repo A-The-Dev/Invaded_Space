@@ -21,6 +21,8 @@
 #include "leaderboard.h"
 #include <QGraphicsProxyWidget>
 
+class Menu;
+
 class Game : public QGraphicsView
 {
     Q_OBJECT
@@ -50,6 +52,12 @@ public slots:
     void onXPOrbCollected(XPOrb *orb);
     void onBossUltimate(QPointF position, qreal angle, bool isBoss);
     void toggleFullscreen();
+    void onPauseMenuRequested();
+    void onResumeGame();
+    void onReturnToTitle();
+
+signals:
+    void returnToMainMenu();
 
 private:
     QGraphicsScene *scene;
@@ -76,9 +84,12 @@ private:
     bool isFullscreen = false;
     QRect previousGeometry;
     int currentBossID = 0;
+    bool m_isPaused = false;
 
     // tracks whether startGame() already ran
     bool m_gameStarted = false;
+
+    Menu *m_pauseMenu;
 
     void spawnSpaceObject();
     void spawnEnemy();

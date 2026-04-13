@@ -20,6 +20,7 @@
 #include <QPixmap>
 #include <QTimer>
 #include <QFile>
+#include <QGraphicsBlurEffect>
 
 Menu::Menu(QWidget *parent)
     : QWidget(parent),
@@ -29,22 +30,32 @@ Menu::Menu(QWidget *parent)
       m_overlayWidget(nullptr),
       m_mainMenuWidget(nullptr),
       m_optionsWidget(nullptr),
+      m_pauseMenuWidget(nullptr),
+      m_pauseOptionsWidget(nullptr),
       m_titleLabel(nullptr),
       m_startButton(nullptr),
       m_optionsButton(nullptr),
       m_leaderboardButton(nullptr),
       m_quitButton(nullptr),
+      m_resumeButton(nullptr),
+      m_pauseOptionsButton(nullptr),
+      m_pauseQuitButton(nullptr),
       m_volumeSlider(nullptr),
       m_volumePercentLabel(nullptr),
       m_fullscreenCheck(nullptr),
       m_optionsBackButton(nullptr),
+      m_pauseVolumeSlider(nullptr),
+      m_pauseVolumePercentLabel(nullptr),
+      m_pauseFullscreenCheck(nullptr),
+      m_pauseOptionsBackButton(nullptr),
       m_selectorLabel(nullptr),
       m_selectedIndex(0),
       m_spawnTimer(0),
       m_usingPixelFont(false),
       m_currentPage(MainPage),
       m_leaderboard(nullptr),
-      m_modalBackdrop(nullptr)
+      m_modalBackdrop(nullptr),
+      m_isPauseMenuVisible(false)
 {
     setFocusPolicy(Qt::StrongFocus);
 
@@ -63,6 +74,7 @@ Menu::Menu(QWidget *parent)
     m_overlayWidget->setStyleSheet("background: transparent;");
 
     setupUI();
+    setupPauseMenuUI();
 
     // selector label (ship icon). try multiple paths for resource.
     m_selectorLabel = new QLabel(m_overlayWidget);
@@ -132,6 +144,8 @@ Menu::Menu(QWidget *parent)
     // main/options items
     m_mainItems = { m_startButton, m_optionsButton, m_leaderboardButton, m_quitButton };
     m_optionsItems = { m_volumeSlider, m_fullscreenCheck, m_optionsBackButton };
+    m_pauseItems = { m_resumeButton, m_pauseOptionsButton, m_pauseQuitButton };
+    m_pauseOptionsItems = { m_pauseVolumeSlider, m_pauseFullscreenCheck, m_pauseOptionsBackButton };
 
     QTimer::singleShot(0, this, [this](){
         m_selectedIndex = 0;
@@ -253,6 +267,142 @@ void Menu::setupUI()
     connect(m_fullscreenCheck, &QCheckBox::toggled, this, &Menu::onFullscreenChanged);
 }
 
+void Menu::setupPauseMenuUI()
+{
+    QStackedLayout *stack = qobject_cast<QStackedLayout*>(m_overlayWidget->layout());
+    if (!stack) return;
+
+    m_pauseMenuWidget = new QWidget(m_overlayWidget);
+    QVBoxLayout *pauseLayout = new QVBoxLayout(m_pauseMenuWidget);
+    pauseLayout->setAlignment(Qt::AlignCenter);
+    pauseLayout->setContentsMargins(40,40,40,40);
+    pauseLayout->setSpacing(24);
+
+    QLabel *pauseTitle = new QLabel("PAUSED", m_pauseMenuWidget);
+    pauseTitle->setAlignment(Qt::AlignCenter);
+    QFont titleFont("PressStart2P", 36, QFont::Bold);
+    pauseTitle->setFont(titleFont);
+    pauseTitle->setStyleSheet("QLabel { color: white; }");
+    pauseLayout->addWidget(pauseTitle, 0, Qt::AlignHCenter);
+
+    QWidget *pauseBtnBox = new QWidget(m_pauseMenuWidget);
+    QVBoxLayout *pauseBtnLayout = new QVBoxLayout(pauseBtnBox);
+    pauseBtnLayout->setSpacing(12);
+    pauseBtnLayout->setAlignment(Qt::AlignCenter);
+
+    m_resumeButton = new QPushButton("Resume", pauseBtnBox);
+    m_pauseOptionsButton = new QPushButton("Options", pauseBtnBox);
+    m_pauseQuitButton = new QPushButton("Quit Game", pauseBtnBox);
+
+    QString btnStyle =
+        "QPushButton { color: white; background: rgba(30,30,50,200); border-radius:6px; padding: 10px; font-weight: bold; }"
+        "QPushButton:hover { background: rgba(60,60,90,220); }";
+    m_resumeButton->setStyleSheet(btnStyle);
+    m_pauseOptionsButton->setStyleSheet(btnStyle);
+    m_pauseQuitButton->setStyleSheet(btnStyle);
+
+    m_resumeButton->setFixedWidth(260);
+    m_pauseOptionsButton->setFixedWidth(260);
+    m_pauseQuitButton->setFixedWidth(260);
+
+    pauseBtnLayout->addWidget(m_resumeButton);
+    pauseBtnLayout->addWidget(m_pauseOptionsButton);
+    pauseBtnLayout->addWidget(m_pauseQuitButton);
+    pauseLayout->addWidget(pauseBtnBox);
+
+    m_pauseOptionsWidget = new QWidget(m_overlayWidget);
+    QVBoxLayout *pauseOptLayout = new QVBoxLayout(m_pauseOptionsWidget);
+    pauseOptLayout->setAlignment(Qt::AlignCenter);
+    pauseOptLayout->setContentsMargins(40,40,40,40);
+    pauseOptLayout->setSpacing(16);
+
+    QLabel *pauseVolLabel = new QLabel("Sound volume (not implemented):", m_pauseOptionsWidget);
+    pauseVolLabel->setStyleSheet("QLabel { color: white; }");
+    pauseOptLayout->addWidget(pauseVolLabel, 0, Qt::AlignHCenter);
+
+    QHBoxLayout *pauseVolRow = new QHBoxLayout();
+    pauseVolRow->setSpacing(12);
+    pauseVolRow->setAlignment(Qt::AlignCenter);
+
+    m_pauseVolumeSlider = new QSlider(Qt::Horizontal, m_pauseOptionsWidget);
+    m_pauseVolumeSlider->setRange(0,100);
+    m_pauseVolumeSlider->setValue(80);
+    m_pauseVolumeSlider->setFixedWidth(260);
+
+    m_pauseVolumePercentLabel = new QLabel(QString("%1%").arg(m_pauseVolumeSlider->value()), m_pauseOptionsWidget);
+    m_pauseVolumePercentLabel->setStyleSheet("QLabel { color: white; }");
+    m_pauseVolumePercentLabel->setFixedWidth(48);
+    m_pauseVolumePercentLabel->setAlignment(Qt::AlignCenter);
+
+    pauseVolRow->addWidget(m_pauseVolumeSlider);
+    pauseVolRow->addWidget(m_pauseVolumePercentLabel);
+    pauseOptLayout->addLayout(pauseVolRow);
+
+    m_pauseFullscreenCheck = new QCheckBox("Fullscreen", m_pauseOptionsWidget);
+    m_pauseFullscreenCheck->setStyleSheet("QCheckBox { color: white; }");
+    m_pauseFullscreenCheck->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    pauseOptLayout->addWidget(m_pauseFullscreenCheck, 0, Qt::AlignHCenter);
+
+    m_pauseOptionsBackButton = new QPushButton("Back", m_pauseOptionsWidget);
+    m_pauseOptionsBackButton->setStyleSheet(btnStyle);
+    m_pauseOptionsBackButton->setFixedWidth(160);
+    pauseOptLayout->addWidget(m_pauseOptionsBackButton, 0, Qt::AlignHCenter);
+
+    stack->addWidget(m_pauseMenuWidget);
+    stack->addWidget(m_pauseOptionsWidget);
+
+    connect(m_resumeButton, &QPushButton::clicked, this, &Menu::onResumeClicked);
+    connect(m_pauseOptionsButton, &QPushButton::clicked, this, &Menu::onPauseOptionsClicked);
+    connect(m_pauseQuitButton, &QPushButton::clicked, this, &Menu::onPauseQuitClicked);
+    connect(m_pauseOptionsBackButton, &QPushButton::clicked, this, &Menu::onBackFromPauseOptions);
+    connect(m_pauseVolumeSlider, &QSlider::valueChanged, this, &Menu::onVolumeChanged);
+    connect(m_pauseFullscreenCheck, &QCheckBox::toggled, this, &Menu::onFullscreenChanged);
+}
+
+void Menu::showPauseMenu(bool show)
+{
+    m_isPauseMenuVisible = show;
+
+    if (show) {
+        m_currentPage = PauseMenuPage;
+        QStackedLayout *stack = qobject_cast<QStackedLayout*>(m_overlayWidget->layout());
+        if (stack) stack->setCurrentWidget(m_pauseMenuWidget);
+        m_selectedIndex = 0;
+        
+        // Show as modal overlay with blur effect on background
+        if (m_view) {
+            m_view->setGraphicsEffect(new QGraphicsBlurEffect());
+            if (auto blurEffect = qobject_cast<QGraphicsBlurEffect*>(m_view->graphicsEffect())) {
+                blurEffect->setBlurRadius(10);
+            }
+        }
+        
+        // Set overlay with semi-transparent dark background
+        m_overlayWidget->setStyleSheet("background: rgba(0, 0, 0, 80);");
+        m_overlayWidget->show();
+        m_overlayWidget->raise();
+        
+        this->setStyleSheet("background: transparent;");
+        this->show();
+        this->raise();
+        ensureMenuFocus();
+        updateSelectorPosition();
+    } else {
+        m_isPauseMenuVisible = false;
+        m_overlayWidget->setStyleSheet("background: transparent;");
+        if (m_view) {
+            m_view->setGraphicsEffect(nullptr);  // Remove blur effect
+        }
+        this->hide();
+        emit resumeGameRequested();
+    }
+}
+
+bool Menu::isPauseMenuVisible() const
+{
+    return m_isPauseMenuVisible;
+}
+
 void Menu::showLeaderboard(bool show)
 {
     if (!m_leaderboard || !m_modalBackdrop) return;
@@ -297,6 +447,35 @@ void Menu::onOptionsClicked()
     updateSelectorPosition();
 }
 
+void Menu::onResumeClicked()
+{
+    showPauseMenu(false);
+}
+
+void Menu::onPauseOptionsClicked()
+{
+    m_currentPage = PauseOptionsPage;
+    QStackedLayout *stack = qobject_cast<QStackedLayout*>(m_overlayWidget->layout());
+    if (stack) stack->setCurrentWidget(m_pauseOptionsWidget);
+    m_selectedIndex = 0;
+    updateSelectorPosition();
+}
+
+void Menu::onBackFromPauseOptions()
+{
+    m_currentPage = PauseMenuPage;
+    QStackedLayout *stack = qobject_cast<QStackedLayout*>(m_overlayWidget->layout());
+    if (stack) stack->setCurrentWidget(m_pauseMenuWidget);
+    m_selectedIndex = 0;
+    updateSelectorPosition();
+}
+
+void Menu::onPauseQuitClicked()
+{
+    showPauseMenu(false);
+    qApp->quit();
+}
+
 void Menu::keyPressEvent(QKeyEvent *event)
 {
     if (m_leaderboard && m_leaderboard->isVisible()) {
@@ -310,6 +489,13 @@ void Menu::keyPressEvent(QKeyEvent *event)
 
     int key = event->key();
 
+    // Allow Escape to resume game from pause menu
+    if (key == Qt::Key_Escape && m_isPauseMenuVisible) {
+        showPauseMenu(false);
+        event->accept();
+        return;
+    }
+
     if (key == Qt::Key_W || key == Qt::Key_Up) {
         moveSelection(-1);
         event->accept();
@@ -322,8 +508,15 @@ void Menu::keyPressEvent(QKeyEvent *event)
     }
 
     if (key == Qt::Key_A || key == Qt::Key_Left) {
-        if (m_currentPage == OptionsPage && m_selectedIndex >=0 && m_selectedIndex < m_optionsItems.size()) {
-            QWidget *w = m_optionsItems[m_selectedIndex];
+        QVector<QWidget*> *items = nullptr;
+        if (m_currentPage == OptionsPage) {
+            items = &m_optionsItems;
+        } else if (m_currentPage == PauseOptionsPage) {
+            items = &m_pauseOptionsItems;
+        }
+
+        if (items && m_selectedIndex >=0 && m_selectedIndex < items->size()) {
+            QWidget *w = (*items)[m_selectedIndex];
             if (auto slider = qobject_cast<QSlider*>(w)) {
                 int v = slider->value();
                 slider->setValue(qMax(0, v - 5));
@@ -335,8 +528,15 @@ void Menu::keyPressEvent(QKeyEvent *event)
         return;
     }
     if (key == Qt::Key_D || key == Qt::Key_Right) {
-        if (m_currentPage == OptionsPage && m_selectedIndex >=0 && m_selectedIndex < m_optionsItems.size()) {
-            QWidget *w = m_optionsItems[m_selectedIndex];
+        QVector<QWidget*> *items = nullptr;
+        if (m_currentPage == OptionsPage) {
+            items = &m_optionsItems;
+        } else if (m_currentPage == PauseOptionsPage) {
+            items = &m_pauseOptionsItems;
+        }
+
+        if (items && m_selectedIndex >=0 && m_selectedIndex < items->size()) {
+            QWidget *w = (*items)[m_selectedIndex];
             if (auto slider = qobject_cast<QSlider*>(w)) {
                 int v = slider->value();
                 slider->setValue(qMin(100, v + 5));
@@ -437,6 +637,9 @@ void Menu::layoutResponsive()
     m_optionsButton->setFixedWidth(bw);
     m_leaderboardButton->setFixedWidth(bw);
     m_quitButton->setFixedWidth(bw);
+    m_resumeButton->setFixedWidth(bw);
+    m_pauseOptionsButton->setFixedWidth(bw);
+    m_pauseQuitButton->setFixedWidth(bw);
 
     if (m_volumeSlider)
     {
@@ -444,8 +647,17 @@ void Menu::layoutResponsive()
         m_volumeSlider->setFixedWidth(sliderW);
     }
 
+    if (m_pauseVolumeSlider)
+    {
+        int sliderW = qBound(140, w / 5, 360);
+        m_pauseVolumeSlider->setFixedWidth(sliderW);
+    }
+
     if (m_optionsBackButton)
         m_optionsBackButton->setFixedWidth(qBound(120, bw/2, 300));
+
+    if (m_pauseOptionsBackButton)
+        m_pauseOptionsBackButton->setFixedWidth(qBound(120, bw/2, 300));
 }
 
 void Menu::onQuitClicked()
@@ -468,13 +680,14 @@ void Menu::onVolumeChanged(int value)
 {
     if (m_volumePercentLabel)
         m_volumePercentLabel->setText(QString("%1%").arg(value));
+    if (m_pauseVolumePercentLabel)
+        m_pauseVolumePercentLabel->setText(QString("%1%").arg(value));
     emit volumeChanged(value);
 }
 
 void Menu::onFullscreenChanged(bool checked)
 {
     emit fullscreenToggled(checked);
-
     ensureMenuFocus();
 }
 
@@ -536,8 +749,19 @@ void Menu::spawnSpaceObject()
 
 void Menu::activateSelected()
 {
-    QVector<QWidget*> *list = (m_currentPage == MainPage) ? &m_mainItems : &m_optionsItems;
-    if (list->isEmpty()) return;
+    QVector<QWidget*> *list = nullptr;
+
+    if (m_currentPage == MainPage) {
+        list = &m_mainItems;
+    } else if (m_currentPage == OptionsPage) {
+        list = &m_optionsItems;
+    } else if (m_currentPage == PauseMenuPage) {
+        list = &m_pauseItems;
+    } else if (m_currentPage == PauseOptionsPage) {
+        list = &m_pauseOptionsItems;
+    }
+
+    if (!list || list->isEmpty()) return;
 
     int idx = qBound(0, m_selectedIndex, list->size() - 1);
     QWidget *w = (*list)[idx];
@@ -588,8 +812,19 @@ void Menu::loadPixelFontIfAvailable()
 
 void Menu::updateSelectorPosition()
 {
-    QVector<QWidget*> *list = (m_currentPage == MainPage) ? &m_mainItems : &m_optionsItems;
-    if (list->isEmpty() || !m_selectorLabel || !m_overlayWidget) {
+    QVector<QWidget*> *list = nullptr;
+
+    if (m_currentPage == MainPage) {
+        list = &m_mainItems;
+    } else if (m_currentPage == OptionsPage) {
+        list = &m_optionsItems;
+    } else if (m_currentPage == PauseMenuPage) {
+        list = &m_pauseItems;
+    } else if (m_currentPage == PauseOptionsPage) {
+        list = &m_pauseOptionsItems;
+    }
+
+    if (!list || list->isEmpty() || !m_selectorLabel || !m_overlayWidget) {
         if (m_selectorLabel) m_selectorLabel->hide();
         return;
     }
@@ -619,29 +854,42 @@ void Menu::updateSelectorPosition()
         "QPushButton:hover { background: rgba(60,60,90,220); }";
     QString highlight = "outline: 2px solid rgba(200,200,255,0.18);";
 
+    auto highlightButtons = [&](QVector<QWidget*> &items) {
+        for (int i = 0; i < items.size(); ++i) {
+            QWidget *u = items[i];
+            if (!u) continue;
+            if (auto pb = qobject_cast<QPushButton*>(u)) {
+                pb->setStyleSheet((i == idx) ? baseBtn + " " + highlight : baseBtn);
+            }
+        }
+    };
+
     if (m_currentPage == MainPage) {
-        for (int i = 0; i < m_mainItems.size(); ++i) {
-            QWidget *u = m_mainItems[i];
-            if (!u) continue;
-            if (auto pb = qobject_cast<QPushButton*>(u)) {
-                pb->setStyleSheet((i == idx) ? baseBtn + " " + highlight : baseBtn);
-            }
-        }
-    } else {
-        for (int i = 0; i < m_optionsItems.size(); ++i) {
-            QWidget *u = m_optionsItems[i];
-            if (!u) continue;
-            if (auto pb = qobject_cast<QPushButton*>(u)) {
-                pb->setStyleSheet((i == idx) ? baseBtn + " " + highlight : baseBtn);
-            }
-        }
+        highlightButtons(m_mainItems);
+    } else if (m_currentPage == OptionsPage) {
+        highlightButtons(m_optionsItems);
+    } else if (m_currentPage == PauseMenuPage) {
+        highlightButtons(m_pauseItems);
+    } else if (m_currentPage == PauseOptionsPage) {
+        highlightButtons(m_pauseOptionsItems);
     }
 }
 
 void Menu::moveSelection(int delta)
 {
-    QVector<QWidget*> *list = (m_currentPage == MainPage) ? &m_mainItems : &m_optionsItems;
-    if (list->isEmpty()) return;
+    QVector<QWidget*> *list = nullptr;
+
+    if (m_currentPage == MainPage) {
+        list = &m_mainItems;
+    } else if (m_currentPage == OptionsPage) {
+        list = &m_optionsItems;
+    } else if (m_currentPage == PauseMenuPage) {
+        list = &m_pauseItems;
+    } else if (m_currentPage == PauseOptionsPage) {
+        list = &m_pauseOptionsItems;
+    }
+
+    if (!list || list->isEmpty()) return;
 
     m_selectedIndex += delta;
     if (m_selectedIndex < 0) m_selectedIndex = list->size() - 1;
