@@ -1,5 +1,6 @@
 #include "game.h"
 #include "upgrade_menu.h"
+#include "menu.h"
 #include <QKeyEvent>
 #include <QLineF>
 #include <QRandomGenerator>
@@ -12,7 +13,7 @@
 Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
     scene(nullptr), player(nullptr), timer(nullptr),
     collisionManager(nullptr), hud(nullptr), levelSystem(nullptr),
-    arduino(nullptr), m_gameStarted(false)
+    arduino(nullptr), m_gameStarted(false), m_pauseMenu(nullptr)
 {
     // Create scene with larger area for free movement
     scene = new QGraphicsScene(this);
@@ -108,6 +109,13 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
     connect(levelSystem, &LevelSystem::xpChanged, hud, &HUD::updateXP);
     hud->updateLevel(levelSystem->getLevel());
     hud->updateXP(levelSystem->getCurrentXP(), levelSystem->getXPForNextLevel());
+
+    // Create pause menu
+    m_pauseMenu = new Menu(this);
+    m_pauseMenu->hide();
+    connect(m_pauseMenu, &Menu::resumeGameRequested, this, &Game::onResumeGame);
+    connect(m_pauseMenu, &Menu::fullscreenToggled, this, &Game::toggleFullscreen);
+    connect(m_pauseMenu, &Menu::volumeChanged, this, [](int value) { Q_UNUSED(value); /* implement audio volume change */ });
 
     // If not paused, start gameplay immediately, otherwise wait for explicit startGame() call.
     if (!startPaused) {
@@ -263,6 +271,15 @@ void Game::mousePressEvent(QMouseEvent *event)
 
 void Game::keyPressEvent(QKeyEvent *event)
 {
+    // Handle pause menu toggle with Escape
+    if (event->key() == Qt::Key_Escape) {
+        if (m_gameStarted && !m_isPaused && m_pauseMenu && !m_pauseMenu->isPauseMenuVisible()) {
+            onPauseMenuRequested();
+            event->accept();
+            return;
+        }
+    }
+
     player->keyPressEvent(event);
     if (event->key() == Qt::Key_F)
     {
@@ -944,4 +961,41 @@ void Game::toggleFullscreen()
             setGeometry(previousGeometry);
         isFullscreen = false;
     }
+}
+
+void Game::onPauseMenuRequested()
+{
+    if (timer) timer->stop();
+    m_isPaused = true;
+    if (player) player->resetInputStates();
+    if (m_pauseMenu) {
+        m_pauseMenu->showPauseMenu(true);
+        m_pauseMenu->raise();
+        m_pauseMenu->setFocus();
+    }
+}
+
+void Game::onResumeGame()
+{
+    m_isPaused = false;
+    if (timer) timer->start();
+    setFocus();
+}
+
+void Game::onReturnToTitle()
+{
+    // Stop the game timer
+    if (timer) timer->stop();
+    
+    // Reset game state
+    m_isPaused = false;
+    m_gameStarted = false;
+    
+    // Hide pause menu first
+    if (m_pauseMenu) {
+        m_pauseMenu->hide();
+    }
+    
+    // Emit signal to notify main.cpp to return to main menu
+    emit returnToMainMenu();
 }

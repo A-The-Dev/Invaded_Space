@@ -3,27 +3,28 @@
 #include "menu.h"
 #include <QTimer>
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     QApplication a(argc, argv);
 
-    Game *game = new Game(nullptr, /*startPaused=*/true);
+    Game* game = new Game(nullptr, /*startPaused=*/true);
     game->resize(1024, 768);
     game->show();
 
-    Menu *menu = new Menu(game->viewport());
-    menu->setGeometry(0, 0, game->viewport()->width(), game->viewport()->height());
+    Menu* menu = new Menu(game);
+    menu->setGeometry(0, 0, game->width(), game->height());
     menu->show();
+    menu->raise();
 
-    QObject::connect(menu, &Menu::startGameRequested, [menu, game](){
+    QObject::connect(menu, &Menu::startGameRequested, game, [menu, game]() {
         if (!game) return;
         game->startGame();
         menu->hide();
         game->setFocus();
-    });
+        });
 
     // Apply fullscreen on the Game, then reposition the menu overlay after the window has resized.
-    QObject::connect(menu, &Menu::fullscreenToggled, [game, menu](bool fullscreen){
+    QObject::connect(menu, &Menu::fullscreenToggled, [game, menu](bool fullscreen) {
         if (!game || !menu) return;
 
         if (fullscreen)
@@ -31,19 +32,16 @@ int main(int argc, char *argv[])
         else
             game->showNormal();
 
-        // Defer overlay resize until after Qt's layout/resize completes.
-        QTimer::singleShot(0, menu, [menu]() {
-            if (QWidget *parent = menu->parentWidget()) {
-                menu->setGeometry(0, 0, parent->width(), parent->height());
-                // Calling setGeometry triggers Menu::resizeEvent which will run layoutResponsive()
-                // and deferred selector positioning.
+        QTimer::singleShot(0, menu, [menu, game]() {
+            if (game) {
+                menu->setGeometry(0, 0, game->width(), game->height());
             }
+            });
         });
-    });
 
-    QObject::connect(menu, &Menu::volumeChanged, [](int value){
+    QObject::connect(menu, &Menu::volumeChanged, [](int value) {
         Q_UNUSED(value);
-    });
+        });
 
     return a.exec();
 }

@@ -21,10 +21,15 @@ public:
     explicit Menu(QWidget *parent = nullptr);
     ~Menu() override;
 
+    // Shows the pause menu overlay
+    void showPauseMenu(bool show);
+    bool isPauseMenuVisible() const;
+
 signals:
     void startGameRequested();
     void fullscreenToggled(bool fullscreen);
     void volumeChanged(int value);
+    void resumeGameRequested();
 
 private slots:
     void onStartClicked();
@@ -35,6 +40,10 @@ private slots:
     void onFullscreenChanged(bool checked);
     void onUpdateScene();
     void showLeaderboard(bool show);
+    void onResumeClicked();
+    void onPauseOptionsClicked();
+    void onBackFromPauseOptions();
+    void onPauseQuitClicked();
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
@@ -44,11 +53,12 @@ protected:
 
 private:
     void setupUI();
+    void setupPauseMenuUI();
     void spawnSpaceObject();
     void loadPixelFontIfAvailable();
     void layoutResponsive();
 
-    enum Page { MainPage = 0, OptionsPage = 1 };
+    enum Page { MainPage = 0, OptionsPage = 1, PauseMenuPage = 2, PauseOptionsPage = 3 };
     Page m_currentPage;
 
     QGraphicsView *m_view;
@@ -60,6 +70,8 @@ private:
     QWidget *m_overlayWidget;
     QWidget *m_mainMenuWidget;
     QWidget *m_optionsWidget;
+    QWidget *m_pauseMenuWidget;
+    QWidget *m_pauseOptionsWidget;
 
     // Main menu controls
     QLabel *m_titleLabel;
@@ -68,16 +80,29 @@ private:
     QPushButton *m_leaderboardButton;
     QPushButton *m_quitButton;
 
-    // Options controls
+    // Pause menu controls
+    QPushButton *m_resumeButton;
+    QPushButton *m_pauseOptionsButton;
+    QPushButton *m_pauseQuitButton;
+
+    // Options controls (shared between main and pause)
     QSlider *m_volumeSlider;
     QLabel *m_volumePercentLabel;
     QCheckBox *m_fullscreenCheck;
     QPushButton *m_optionsBackButton;
 
+    // Pause options controls (separate from main options)
+    QSlider *m_pauseVolumeSlider;
+    QLabel *m_pauseVolumePercentLabel;
+    QCheckBox *m_pauseFullscreenCheck;
+    QPushButton *m_pauseOptionsBackButton;
+
     // Navigation / selector
     QLabel *m_selectorLabel;                 // ship icon or marker
     QVector<QWidget*> m_mainItems;           // orderable focusable widgets (main)
     QVector<QWidget*> m_optionsItems;        // orderable focusable widgets (options)
+    QVector<QWidget*> m_pauseItems;          // orderable focusable widgets (pause)
+    QVector<QWidget*> m_pauseOptionsItems;   // orderable focusable widgets (pause options)
     int m_selectedIndex;
 
     Leaderboard *m_leaderboard;
@@ -86,6 +111,8 @@ private:
     // State
     int m_spawnTimer;
     bool m_usingPixelFont;
+    bool m_isPauseMenuVisible;
+    bool m_isMainMenu;
 
     void updateSelectorPosition();
     void moveSelection(int delta);
