@@ -981,21 +981,3 @@ void Game::onResumeGame()
     if (timer) timer->start();
     setFocus();
 }
-
-void Game::onReturnToTitle()
-{
-    // Stop the game timer
-    if (timer) timer->stop();
-    
-    // Reset game state
-    m_isPaused = false;
-    m_gameStarted = false;
-    
-    // Hide pause menu first
-    if (m_pauseMenu) {
-        m_pauseMenu->hide();
-    }
-    
-    // Emit signal to notify main.cpp to return to main menu
-    emit returnToMainMenu();
-}
