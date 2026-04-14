@@ -9,6 +9,7 @@
 #include "Boss.h"
 #include <limits>
 #include "ultimate.h"
+#include "SoundManager.h"
 
 namespace AngleUtils {
     // normalize difference to [-180,180)
@@ -53,7 +54,7 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
     grenadeRefillTimer = new QTimer(this);
     connect(grenadeRefillTimer, &QTimer::timeout, this, &Player::refillGrenade);
 	grenadeRefillTimer->start(10000); // 10 seconds (10000 ms)
-    numberofgrenades = maxGrenades;
+    numberofgrenades = maxGrenades = 3;
  
 }
 
@@ -198,12 +199,19 @@ void Player::takeDamage(int damage)
     health -= damage;
     emit healthChanged(health, maxHealth);
 
+    // Play hurt sound
+    SoundManager::instance()->playSound(SoundManager::PlayerHurt);
+
     // Set invincibility frames (1/3 second at 60fps)
     invincibilityFrames = 20;
 
     if (health <= 0)
     {
         health = 0;
+
+        // Play death sound
+        SoundManager::instance()->playSound(SoundManager::PlayerDeath);
+
         emit died();
     }
     else
@@ -245,6 +253,10 @@ bool Player::tryUseUltimate()
     if (isUltimateReady) {
         ultimateCharge = 0;
         isUltimateReady = false;
+        
+        // Play ultimate sound
+        SoundManager::instance()->playSound(SoundManager::PlayerUltimate);
+        
         return true;
     }
     return false;
@@ -285,15 +297,44 @@ void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
     Q_UNUSED(option);
     Q_UNUSED(widget);
 
-    // Draw the rectangle outline (optional)
-    //painter->setPen(QPen(QColor(200, 200, 255), 2));
-    //painter->setBrush(Qt::NoBrush);
-    //painter->drawRect(rect());
+    if (sprite.isNull()) {
+        // Fallback if sprite failed to load
+        painter->setPen(QPen(QColor(200, 200, 255), 2));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRect(rect());
+        return;
+    }
 
-    // Draw the sprite centered inside the rectangle
-    painter->drawPixmap(rect().topLeft(), sprite);
+    // If no color is set or color is invalid, just draw the sprite normally
+    if (!shipColor.isValid() || shipColor.alpha() == 0)
+    {
+        painter->drawPixmap(rect().topLeft(), sprite);
+        return;
+    }
+
+    // Create a colored version of the sprite that preserves transparency
+    QPixmap coloredSprite(sprite.size());
+    coloredSprite.fill(Qt::transparent);
+
+    QPainter spritePainter(&coloredSprite);
+    
+    // Draw original sprite
+    spritePainter.drawPixmap(0, 0, sprite);
+    
+    // Apply color tint
+    spritePainter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
+    
+    // Reduce the alpha of the color mask
+    QColor reducedColor = shipColor;
+    reducedColor.setAlpha(static_cast<int>(shipColor.alpha() * 0.8));
+    
+    spritePainter.fillRect(coloredSprite.rect(), reducedColor);
+    
+    spritePainter.end();
+
+    // Draw the colored sprite
+    painter->drawPixmap(rect().topLeft(), coloredSprite);
 }
-
 void Player::updateFromJoystick(double axisX, double axisY, bool tir, bool ulti)
 {
     this->joyX = axisX;
@@ -381,6 +422,9 @@ void Player::shoot() {
     bullet->setDamage(attackDamage);
 
     emit bulletFired(bullet);
+    
+    // Play shoot sound
+    SoundManager::instance()->playSound(SoundManager::PlayerShoot);
 
     lastShotTimer.restart();
 }
@@ -466,6 +510,9 @@ void Player::throwGrenade()
     numberofgrenades--;
     emit grenadeCountChanged(numberofgrenades);
     grenadeShotTimer.restart();
+
+    // Play grenade throw sound
+    SoundManager::instance()->playSound(SoundManager::GrenadeThrow);
 }
 void Player::launchUltimate() {
     //qDebug() << "Tentative d'apparition de l'ultime...";
@@ -528,4 +575,31 @@ void Player::resetInputStates()
     knockbackVelocity = QPointF(0,0);
     aimHoldFrames = 0;
     rotationSpeedCurrent = rotationSpeedDefault;
+}
+
+void Player::resetToDefault()
+{
+    // Reset stats
+    health = maxHealth = 20;
+    speed = 5.0;
+    invincibilityFrames = 0;
+    
+    ultimateCharge = 0.0f;
+    isUltimateReady = false;
+    attackDamage = 1;
+    
+    // Reset grenades
+    numberofgrenades = 3;
+    for (Grenades* g : activeGrenades) {
+        if (g->scene()) scene()->removeItem(g);
+        delete g;
+    }
+    activeGrenades.clear();
+    
+    // Reset movement state
+    resetInputStates();
+    
+    // Emit signal for UI update
+    emit healthChanged(health, maxHealth);
+    emit grenadeCountChanged(numberofgrenades);
 }

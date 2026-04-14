@@ -7,10 +7,14 @@
 #include <QScrollBar>
 #include <QVBoxLayout>
 #include <QResizeEvent>
-#include <QFile> // added
+#include <QFile>
+#include <QPushButton>
+#include <QPainter>
 
 Leaderboard::Leaderboard(QWidget* parent) : QWidget(parent), m_scroll(nullptr),
-    m_container(nullptr), m_listLayout(nullptr), m_selectedIndex(-1)
+    m_container(nullptr), m_listLayout(nullptr), m_selectedIndex(-1),
+    m_buttonContainer(nullptr), m_buttonLayout(nullptr), 
+    m_restartButton(nullptr), m_quitButton(nullptr), m_isEndgameMode(false)
 {
     setStyleSheet("background-color: rgba(15, 15, 15, 240); border: 2px solid white; border-radius: 10px;");
 
@@ -19,7 +23,7 @@ Leaderboard::Leaderboard(QWidget* parent) : QWidget(parent), m_scroll(nullptr),
     mainLayout->setSpacing(8);
 
     QLabel* title = new QLabel("LEADERBOARD", this);
-    title->setStyleSheet("color: white; font-size: 22pt; font-weight: bold;");
+    title->setStyleSheet("color: white; font-weight: bold;");
     title->setAlignment(Qt::AlignCenter);
     mainLayout->addWidget(title);
 
@@ -33,9 +37,34 @@ Leaderboard::Leaderboard(QWidget* parent) : QWidget(parent), m_scroll(nullptr),
     m_listLayout->setSpacing(10);
 
     m_scroll->setWidget(m_container);
-    mainLayout->addWidget(m_scroll);
+    mainLayout->addWidget(m_scroll, 1);
 
     m_scroll->viewport()->installEventFilter(this);
+
+    // Endgame button container (initially hidden)
+    m_buttonContainer = new QWidget(this);
+    m_buttonLayout = new QVBoxLayout(m_buttonContainer);
+    m_buttonLayout->setContentsMargins(0,8,0,0);
+    m_buttonLayout->setSpacing(12);
+    m_buttonLayout->setAlignment(Qt::AlignCenter);
+
+    QString btnStyle =
+        "QPushButton { color: white; background: rgba(30,30,50,200); border-radius:6px; padding: 10px; font-weight: bold; }"
+        "QPushButton:hover { background: rgba(60,60,90,220); }";
+
+    m_restartButton = new QPushButton("Restart Game", m_buttonContainer);
+    m_restartButton->setStyleSheet(btnStyle);
+    m_quitButton = new QPushButton("Quit Game", m_buttonContainer);
+    m_quitButton->setStyleSheet(btnStyle);
+
+    m_buttonLayout->addWidget(m_restartButton);
+    m_buttonLayout->addWidget(m_quitButton);
+
+    m_buttonContainer->hide();
+    mainLayout->addWidget(m_buttonContainer);
+
+    connect(m_restartButton, &QPushButton::clicked, this, &Leaderboard::restartRequested);
+    connect(m_quitButton, &QPushButton::clicked, this, &Leaderboard::quitRequested);
 
     refresh();
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -60,6 +89,7 @@ void Leaderboard::refresh()
     m_listLayout->addStretch();
     m_selectedIndex = m_entries.isEmpty() ? -1 : 0;
     updateSelectionUI();
+    updateFontSizes();
 }
 
 QFrame* Leaderboard::createEntryWidget(const QJsonObject& obj) {
@@ -75,7 +105,6 @@ QFrame* Leaderboard::createEntryWidget(const QJsonObject& obj) {
     layout->setSpacing(12);
 
     QLabel* iconLabel = new QLabel(frame);
-    iconLabel->setFixedSize(70, 70);
     iconLabel->setAlignment(Qt::AlignCenter);
     iconLabel->setStyleSheet("border: 1px solid #444; background: #050505;");
 
@@ -83,18 +112,65 @@ QFrame* Leaderboard::createEntryWidget(const QJsonObject& obj) {
     playerImg.load("./resources/spaceship.png");
 
     if (!playerImg.isNull()) {
-        iconLabel->setPixmap(playerImg.scaled(60, 60, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        // Parse the color from JSON
+        QString colorHex = obj["color"].toString();
+        QColor shipColor;
+        
+        // Parse hex color (supports #RRGGBB or #RRGGBBAA)
+        if (colorHex.startsWith("#") && colorHex.length() >= 7) {
+            colorHex = colorHex.mid(1); // Remove the '#'
+            
+            if (colorHex.length() == 6) {
+                // RRGGBB format - add default alpha
+                colorHex += "B4";
+            }
+            
+            if (colorHex.length() == 8) {
+                bool ok;
+                unsigned int rgba = colorHex.toUInt(&ok, 16);
+                if (ok) {
+                    int r = (rgba >> 24) & 0xFF;
+                    int g = (rgba >> 16) & 0xFF;
+                    int b = (rgba >> 8) & 0xFF;
+                    int a = rgba & 0xFF;
+                    shipColor = QColor(r, g, b, a);
+                }
+            }
+        }
+        
+        // Apply color tint to the ship sprite if valid color
+        QPixmap coloredShip = playerImg;
+        if (shipColor.isValid() && shipColor.alpha() > 0) {
+            QPixmap tinted(playerImg.size());
+            tinted.fill(Qt::transparent);
+            
+            QPainter painter(&tinted);
+            painter.drawPixmap(0, 0, playerImg);
+            
+            painter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
+            QColor reducedColor = shipColor;
+            reducedColor.setAlpha(static_cast<int>(shipColor.alpha() * 0.8));
+            painter.fillRect(tinted.rect(), reducedColor);
+            painter.end();
+            
+            coloredShip = tinted;
+        }
+        
+        iconLabel->setPixmap(coloredShip.scaled(60, 60, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     } else {
         iconLabel->setText("?");
         iconLabel->setStyleSheet("color: white; font-weight: bold; border: 1px solid #444;");
     }
+    iconLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
-    QLabel* stats = new QLabel(QString("<b style='font-size:13pt;'>%1</b><br/>HP:%2 | LVL:%3 | ATK:%4")
+    QLabel* stats = new QLabel(QString("<b>%1</b><br/>HP:%2 | LVL:%3 | ATK:%4")
         .arg(obj["name"].toString()).arg(obj["hp"].toInt()).arg(obj["lvl"].toInt()).arg(obj["atk"].toInt()), frame);
     stats->setTextFormat(Qt::RichText);
+    stats->setWordWrap(true);
 
-    QLabel* score = new QLabel(QString("<b style='font-size:11pt; color:#FF5252;'>%1</b>").arg(obj["score"].toInt()), frame);
+    QLabel* score = new QLabel(QString("<b style='color:#FF5252;'>%1</b>").arg(obj["score"].toInt()), frame);
     score->setAlignment(Qt::AlignCenter);
+    score->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
     layout->addWidget(iconLabel);
     layout->addWidget(stats, 1);
@@ -103,8 +179,80 @@ QFrame* Leaderboard::createEntryWidget(const QJsonObject& obj) {
     return frame;
 }
 
+void Leaderboard::updateFontSizes()
+{
+    int w = width();
+    if (w <= 0) return;
+
+    // Scale title font
+    int titleSize = qBound(14, w / 20, 28);
+    QFont titleFont;
+    titleFont.setPointSize(titleSize);
+    titleFont.setBold(true);
+
+    QLabel* title = findChild<QLabel*>();
+    if (title) title->setFont(titleFont);
+
+    // Scale entry text
+    int statsFontSize = qBound(9, w / 35, 14);
+
+    for (QFrame* frame : m_entries) {
+        auto labels = frame->findChildren<QLabel*>();
+        for (int i = 0; i < labels.size(); ++i) {
+            QLabel* lbl = labels[i];
+            if (i == 0) continue; // Skip icon label
+            
+            QFont f = lbl->font();
+            f.setPointSize(statsFontSize);
+            lbl->setFont(f);
+        }
+    }
+
+    // Scale buttons
+    int btnFontSize = qBound(10, w / 40, 12);
+    if (m_restartButton) {
+        QFont f = m_restartButton->font();
+        f.setPointSize(btnFontSize);
+        m_restartButton->setFont(f);
+        int btnWidth = qBound(140, w / 3, 280);
+        m_restartButton->setFixedWidth(btnWidth);
+    }
+    if (m_quitButton) {
+        QFont f = m_quitButton->font();
+        f.setPointSize(btnFontSize);
+        m_quitButton->setFont(f);
+        int btnWidth = qBound(140, w / 3, 280);
+        m_quitButton->setFixedWidth(btnWidth);
+    }
+}
+
 void Leaderboard::updateSelectionUI()
 {
+    if (m_isEndgameMode) {
+        // Highlight buttons in endgame mode
+        if (m_selectedIndex == 0 && m_restartButton) {
+            m_restartButton->setStyleSheet(
+                "QPushButton { color: white; background: rgba(30,30,50,200); border-radius:6px; padding: 10px; font-weight: bold; outline: 2px solid rgba(200,200,255,0.18); }"
+                "QPushButton:hover { background: rgba(60,60,90,220); }"
+            );
+            m_quitButton->setStyleSheet(
+                "QPushButton { color: white; background: rgba(30,30,50,200); border-radius:6px; padding: 10px; font-weight: bold; }"
+                "QPushButton:hover { background: rgba(60,60,90,220); }"
+            );
+        } else if (m_selectedIndex == 1 && m_quitButton) {
+            m_restartButton->setStyleSheet(
+                "QPushButton { color: white; background: rgba(30,30,50,200); border-radius:6px; padding: 10px; font-weight: bold; }"
+                "QPushButton:hover { background: rgba(60,60,90,220); }"
+            );
+            m_quitButton->setStyleSheet(
+                "QPushButton { color: white; background: rgba(30,30,50,200); border-radius:6px; padding: 10px; font-weight: bold; outline: 2px solid rgba(200,200,255,0.18); }"
+                "QPushButton:hover { background: rgba(60,60,90,220); }"
+            );
+        }
+        return;
+    }
+
+    // Normal leaderboard mode: highlight entries
     for (int i = 0; i < m_entries.size(); ++i) {
         QFrame* f = m_entries[i];
         if (!f) continue;
@@ -127,27 +275,55 @@ void Leaderboard::updateSelectionUI()
 
 void Leaderboard::selectNext()
 {
-    if (m_entries.isEmpty()) return;
-    m_selectedIndex = qMin(m_selectedIndex + 1, m_entries.size() - 1);
+    if (m_isEndgameMode) {
+        m_selectedIndex = qMin(m_selectedIndex + 1, 1);
+    } else {
+        if (m_entries.isEmpty()) return;
+        m_selectedIndex = qMin(m_selectedIndex + 1, m_entries.size() - 1);
+    }
     updateSelectionUI();
 }
 
 void Leaderboard::selectPrevious()
 {
-    if (m_entries.isEmpty()) return;
-    m_selectedIndex = qMax(0, m_selectedIndex - 1);
+    if (m_isEndgameMode) {
+        m_selectedIndex = qMax(0, m_selectedIndex - 1);
+    } else {
+        if (m_entries.isEmpty()) return;
+        m_selectedIndex = qMax(0, m_selectedIndex - 1);
+    }
     updateSelectionUI();
 }
 
 void Leaderboard::activateSelected()
 {
-    // No specific activation defined. Could display details in future.
+    if (m_isEndgameMode) {
+        if (m_selectedIndex == 0 && m_restartButton) {
+            m_restartButton->click();
+        } else if (m_selectedIndex == 1 && m_quitButton) {
+            m_quitButton->click();
+        }
+    }
+}
+
+void Leaderboard::setEndgameMode(bool endgame)
+{
+    m_isEndgameMode = endgame;
+    m_scroll->setVisible(true);
+    m_buttonContainer->setVisible(endgame);
+    
+    if (endgame) {
+        m_selectedIndex = 0;
+    } else {
+        m_selectedIndex = m_entries.isEmpty() ? -1 : 0;
+    }
+    updateSelectionUI();
 }
 
 bool Leaderboard::eventFilter(QObject* watched, QEvent* event) {
     if (event->type() == QEvent::Wheel) {
         QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
-        if (m_scroll) {
+        if (m_scroll && m_scroll->isVisible()) {
             int delta = wheelEvent->angleDelta().y();
             m_scroll->verticalScrollBar()->setValue(m_scroll->verticalScrollBar()->value() - delta);
         }
@@ -160,6 +336,5 @@ bool Leaderboard::eventFilter(QObject* watched, QEvent* event) {
 void Leaderboard::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
-    // Let layouts control internal sizes; no fixed widths here.
-    // Optionally adjust font sizes or entry paddings based on event->size()
+    updateFontSizes();
 }

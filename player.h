@@ -9,6 +9,7 @@
 #include <QPainter>
 #include <QElapsedTimer>
 #include <QList>
+#include <QColor>
 #include "bullet.h"
 #include "ultimate.h"
 #include "Grenades.h"
@@ -23,6 +24,7 @@ class Player : public QObject, public QGraphicsRectItem
     Q_OBJECT
 public:
     Player(QGraphicsItem *parent = nullptr);
+    void resetToDefault();
 
     void keyPressEvent(QKeyEvent *event);
     void keyReleaseEvent(QKeyEvent *event);
@@ -66,14 +68,17 @@ public:
     void setEnemyLists(const QList<Enemy*> *enemiesList, const QList<Boss*> *bossesList);
     int getGrenadeCount() { return numberofgrenades; }
     void setGrenadeCount(int newgrenadecount);
+    int getMaxGrenades() const { return maxGrenades; }
+
     // Reset movement/input state (call when focus lost / modal shown)
     void resetInputStates();
     void setUseJoystick(bool state) { useJoystick = state; }
     void launchUltimate();
 	void throwGrenade();
-    //void setWeapon(WeaponType type) { currentWeapon = type; }
-   // WeaponType getWeapon() const { return currentWeapon; }
-
+    
+    // Color customization
+    void setShipColor(const QColor& color) { shipColor = color; }
+    QColor getShipColor() const { return shipColor; }
 
 public slots:
     void update();
@@ -85,6 +90,7 @@ signals:
 	void grenadeThrown(Grenades* grenade);
     void requestUltimate();
     void grenadeCountChanged(int newCount);
+    void maxGrenadesChanged(int newMax);
 
 private:
     QPixmap sprite;
@@ -109,7 +115,7 @@ private:
     int attackDamage = 1;
     bool useJoystick = false;
     QElapsedTimer lastShotTimer;
-    int msBetweenShots = 200; // 200ms = 5 balles par seconde max
+    int msBetweenShots = 150;
     int numberofgrenades;
     // New: toggle between nearest target and highest-HP target
     bool targetByHP = false;
@@ -121,11 +127,13 @@ private:
     int msBetweenGrenades = 800;
     // Hold rotation toward target for a short time after shooting so movement doesn't immediately override it
     int aimHoldFrames = 0;
-   // WeaponType currentWeapon = Normal;
     double joyX = 0;
     double joyY = 0;
     bool isFiring = false;
     bool isUltiPressed = false;
+    
+    // Color overlay for ship customization
+    QColor shipColor;
 
 protected:
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = nullptr);

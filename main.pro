@@ -2,7 +2,7 @@ TEMPLATE     = vcapp
 TARGET       = Invaded_Space
 CONFIG      += warn_on qt debug windows console
 
-QT          += widgets serialport
+QT          += widgets serialport multimedia
 
 # Header files
 HEADERS     += arduinomanager.h \
@@ -25,7 +25,9 @@ HEADERS     += arduinomanager.h \
                Leaderboard.h \
                JsonParser.h \
                menu.h \
-	           Grenades.h
+	           Grenades.h \
+               PlayerCustomizationDialog.h \
+               SoundManager.h
 
 # Source files
 SOURCES     += arduinomanager.cpp \
@@ -48,7 +50,9 @@ SOURCES     += arduinomanager.cpp \
                Leaderboard.cpp \
                JsonParser.cpp \
                menu.cpp \
-	           Grenades.cpp
+	           Grenades.cpp \
+               PlayerCustomizationDialog.cpp \
+               SoundManager.cpp
 
 # UI files
 FORMS       += mainwindow.ui

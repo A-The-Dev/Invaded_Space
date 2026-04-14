@@ -10,6 +10,7 @@ public:
     LevelSystem(QObject *parent = nullptr);
 
     void addXP(int xp);
+    void reset();
     int getLevel() const { return level; }
     int getCurrentXP() const { return currentXP; }
     int getXPForNextLevel() const { return xpToNextLevel; }

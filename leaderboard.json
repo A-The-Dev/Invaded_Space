@@ -110,5 +110,101 @@
         "lvl": 12,
         "name": "",
         "score": 2370
+    },
+    {
+        "atk": 19,
+        "color": "#CC9900",
+        "hp": 22,
+        "lvl": 39,
+        "name": "",
+        "score": 21460
+    },
+    {
+        "atk": 19,
+        "color": "#CC9900",
+        "hp": 22,
+        "lvl": 39,
+        "name": "",
+        "score": 21470
+    },
+    {
+        "atk": 1,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 1,
+        "name": "",
+        "score": 0
+    },
+    {
+        "atk": 1,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 1,
+        "name": "",
+        "score": 0
+    },
+    {
+        "atk": 2,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 2,
+        "name": "",
+        "score": 30
+    },
+    {
+        "atk": 2,
+        "color": "#CC9900",
+        "hp": 22,
+        "lvl": 4,
+        "name": "",
+        "score": 170
+    },
+    {
+        "atk": 2,
+        "color": "#CC9900",
+        "hp": 22,
+        "lvl": 4,
+        "name": "",
+        "score": 200
+    },
+    {
+        "atk": 2,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 5,
+        "name": "",
+        "score": 670
+    },
+    {
+        "atk": 5,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 24,
+        "name": "Ratatouille",
+        "score": 9700
+    },
+    {
+        "atk": 8,
+        "color": "#00AA00B4",
+        "hp": 20,
+        "lvl": 35,
+        "name": "Chef Boyardee",
+        "score": 20030
+    },
+    {
+        "atk": 2,
+        "color": "#55FFFFB4",
+        "hp": 20,
+        "lvl": 4,
+        "name": "Player",
+        "score": 410
+    },
+    {
+        "atk": 2,
+        "color": "#FF6464B4",
+        "hp": 20,
+        "lvl": 3,
+        "name": "Player",
+        "score": 130
     }
 ]

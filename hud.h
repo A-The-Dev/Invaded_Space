@@ -21,12 +21,15 @@ public slots:
     void updateLevel(int level);
     void updateXP(int currentXP, int xpToNextLevel);
     void updateGrenades(int count);
+    void setMaxGrenades(int maxGrenadeCount);
 
 private slots:
     void onUltimatePulse();
-
+    void onGrenadeAnimationTick();
 
 private:
+    void createGrenadeSlots();
+
     // Player-attached UI
     QGraphicsRectItem *healthBarBackground;
     QGraphicsRectItem *healthBarFill;
@@ -41,7 +44,13 @@ private:
 
     // Grenades
     QList<QGraphicsRectItem*> grenadeSegments;
-    int maxGrenades = 5;
+    QList<QGraphicsRectItem*> grenadeFills;
+    QList<float> grenadeFillProgress;
+    int maxGrenades = 0;
+    int currentGrenades = 0;
+    int regeneratingGrenadeIndex = -1;
+    float grenadeRegenProgress = 0.0f;
+    
     // Ultimat
     QGraphicsRectItem* ultimateBar;
     QGraphicsRectItem* ultimateBackground;
@@ -49,6 +58,9 @@ private:
     // Pulse animation timer for ultimate full effect
     QTimer* ultimatePulseTimer;
     bool ultimatePulseGrowing = false;
+    
+    // Grenade fill animation timer
+    QTimer* grenadeAnimationTimer;
 
     QGraphicsScene *scene;
     QPointF smoothPos;

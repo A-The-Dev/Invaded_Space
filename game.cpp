@@ -61,10 +61,11 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
 
     connect(player, &Player::grenadeCountChanged, hud, &HUD::updateGrenades);
 
+    hud->setMaxGrenades(player->getMaxGrenades());
     hud->updateGrenades(player->getGrenadeCount());
 
 
-    // 2. Reçoit la balle créée par le joueur et l'ajoute à la liste de collision
+    // Reçoit la balle créée par le joueur et l'ajoute à la liste de collision
     connect(player, &Player::bulletFired, this, [this](Bullet* b){
         scene->addItem(b);
         bullets.append(b);
@@ -127,6 +128,9 @@ void Game::startGame()
 {
     if (m_gameStarted) return;
     m_gameStarted = true;
+    
+    // Set property for external checks
+    setProperty("gameStarted", true);
 
     // Spawn initial space objects
     for (int i = 0; i < 50; ++i)
@@ -139,7 +143,6 @@ void Game::startGame()
     {
         spawnEnemy();
     }
-	player->setGrenadeCount(3); // Start with 3 grenades
 
     // Create timer for game loop and start it
     timer = new QTimer(this);
@@ -269,11 +272,11 @@ void Game::mousePressEvent(QMouseEvent *event)
 	}
 }
 
-void Game::keyPressEvent(QKeyEvent *event)
+void Game::keyPressEvent(QKeyEvent* event)
 {
-    // Handle pause menu toggle with Escape
+    // Prevent pause and ultimate if upgrade menu is open
     if (event->key() == Qt::Key_Escape) {
-        if (m_gameStarted && !m_isPaused && m_pauseMenu && !m_pauseMenu->isPauseMenuVisible()) {
+        if (m_gameStarted && !m_isPaused && !m_upgradeMenuOpen && m_pauseMenu && !m_pauseMenu->isPauseMenuVisible()) {
             onPauseMenuRequested();
             event->accept();
             return;
@@ -283,17 +286,14 @@ void Game::keyPressEvent(QKeyEvent *event)
     player->keyPressEvent(event);
     if (event->key() == Qt::Key_F)
     {
-        if (player->tryUseUltimate()) {
+        // Prevent ultimate if upgrade menu is open
+        if (!m_upgradeMenuOpen && player->tryUseUltimate()) {
             triggerScreenClear();
         }
     }
-    
 
-    // Toggle fullscreen with F11
     if (event->key() == Qt::Key_F11)
-    {
         toggleFullscreen();
-    }
 }
 
 void Game::triggerScreenClear()
@@ -479,25 +479,82 @@ void Game::onBossUltimate(QPointF position, qreal angle, bool isBoss) {
     }
 }
 
-void Game::onPlayerDied() 
+void Game::onPlayerDied()
 {
     if (timer) timer->stop();
-    JsonParser::savePlayerResult(player, levelSystem->getLevel(),  currentScore);
-   
+    JsonParser::savePlayerResult(player, levelSystem->getLevel(), currentScore);
 
-    Leaderboard* lb = new Leaderboard();
-    QGraphicsProxyWidget* proxy = scene->addWidget(lb);
+    Leaderboard* lb = new Leaderboard(this);
+    lb->setEndgameMode(true);
+    lb->refresh();
 
-    // Positionnement
-    proxy->setPos(cameraTarget.x() - lb->width() / 2, cameraTarget.y() - lb->height() / 2);
-    proxy->setZValue(10000);
-
-    // --- RENDRE LE WIDGET PRIORITAIRE ---
+    // Position leaderboard in center of the view (not scene coordinates)
+    int lw = qBound(400, width() * 60 / 100, width() - 40);
+    int lh = qBound(300, height() * 70 / 100, height() - 40);
+    int x = (width() - lw) / 2;
+    int y = (height() - lh) / 2;
+    
+    lb->setGeometry(x, y, lw, lh);
     lb->setFocusPolicy(Qt::StrongFocus);
+    lb->show();
+    lb->raise();
     lb->setFocus();
 
-    // Optionnel : Désactiver le scroll de la vue principale pendant que le leaderboard est là
-    this->setTransformationAnchor(QGraphicsView::NoAnchor);
+    // Connect endgame actions
+    connect(lb, &Leaderboard::restartRequested, this, [this, lb]() {
+        lb->deleteLater();
+        
+        // Reset game state
+        m_isPaused = false;
+        m_gameStarted = false;
+
+        // Clear all game entities
+        qDeleteAll(enemies);
+        enemies.clear();
+        qDeleteAll(bosses);
+        bosses.clear();
+        qDeleteAll(bullets);
+        bullets.clear();
+        qDeleteAll(xpOrbs);
+        xpOrbs.clear();
+        qDeleteAll(spaceObjects);
+        spaceObjects.clear();
+        qDeleteAll(ultimates);
+        ultimates.clear();
+
+        // Reset level and score BEFORE resetting player
+        levelSystem->reset();
+        currentScore = 0;
+        lastBossLevel = 0;
+
+        // Reset player to default state
+        player->resetToDefault();
+        player->setPos(0, 0);
+
+        // Reset spawn timers
+        spawnTimer = 0;
+        enemySpawnTimer = 0;
+        bossSpawnTimer = 0;
+
+        // Reset camera
+        cameraTarget = player->pos();
+
+        // Update HUD with fresh values
+        hud->updateLevel(levelSystem->getLevel());
+        hud->updateHealth(player->getHealth(), player->getMaxHealth());
+        hud->updateXP(levelSystem->getCurrentXP(), levelSystem->getXPForNextLevel());
+        hud->updateUltimate(player->getUltimatePercentage());
+
+        // Restart the game
+        startGame();
+    });
+
+    connect(lb, &Leaderboard::quitRequested, this, [this, lb]() {
+        lb->deleteLater();
+        qApp->quit();
+    });
+
+    m_isPaused = true; // Prevent pause menu from showing
 }
 
 void Game::onLevelUp(int level) {
@@ -510,6 +567,9 @@ void Game::onLevelUp(int level) {
 
     // Créer et afficher le menu
     UpgradeMenu* menu = new UpgradeMenu(this);
+
+    // Mark upgrade menu as open
+    m_upgradeMenuOpen = true;
 
     // On connecte la manette au menu AVANT qu'il ne s'affiche
     connect(arduino, &ArduinoManager::commandReceived, menu, &UpgradeMenu::navigateWithJoystick);
@@ -533,6 +593,9 @@ void Game::onLevelUp(int level) {
 
     // Affiche le menu 
     menu->exec();
+
+    // Mark upgrade menu as closed
+    m_upgradeMenuOpen = false;
 
     // On déconnecte la manette du menu
     disconnect(arduino, &ArduinoManager::commandReceived, menu, &UpgradeMenu::navigateWithJoystick);

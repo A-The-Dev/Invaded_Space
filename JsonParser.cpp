@@ -12,7 +12,6 @@ void JsonParser::savePlayerResult(Player* player, int level, int score)
     QJsonArray rootArray;
 
     if (file.open(QIODevice::ReadOnly)) {
-        // Utilisation de readAll() au lieu de read()
         rootArray = QJsonDocument::fromJson(file.readAll()).array();
         file.close();
     }
@@ -23,7 +22,16 @@ void JsonParser::savePlayerResult(Player* player, int level, int score)
     newEntry["lvl"] = level;
     newEntry["atk"] = player->getAttackDamage();
     newEntry["score"] = score;
-    newEntry["color"] = "#CC9900";
+    
+    // Save the player's ship color as hex (RRGGBBAA format)
+    QColor shipColor = player->getShipColor();
+    QString colorHex = QString("#%1%2%3%4")
+        .arg(shipColor.red(), 2, 16, QChar('0'))
+        .arg(shipColor.green(), 2, 16, QChar('0'))
+        .arg(shipColor.blue(), 2, 16, QChar('0'))
+        .arg(shipColor.alpha(), 2, 16, QChar('0'))
+        .toUpper();
+    newEntry["color"] = colorHex;
 
     rootArray.append(newEntry);
 
@@ -38,7 +46,6 @@ QList<QJsonObject> JsonParser::readAllSorted() {
     QFile file("leaderboard.json");
 
     if (file.open(QIODevice::ReadOnly)) {
-        // Utilisation de readAll() ici aussi
         QJsonArray array = QJsonDocument::fromJson(file.readAll()).array();
         for (const QJsonValue& v : array) {
             sortedList.append(v.toObject());
@@ -48,7 +55,7 @@ QList<QJsonObject> JsonParser::readAllSorted() {
 
     std::sort(sortedList.begin(), sortedList.end(), [](const QJsonObject& a, const QJsonObject& b) {
         return a["score"].toInt() > b["score"].toInt();
-        });
+    });
 
     return sortedList;
 }

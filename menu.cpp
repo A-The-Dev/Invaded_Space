@@ -1,6 +1,7 @@
 #include "menu.h"
 #include "spaceobject.h"
 #include "Leaderboard.h"
+#include "SoundManager.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -222,7 +223,7 @@ void Menu::setupUI()
     optLayout->setContentsMargins(40,40,40,40);
     optLayout->setSpacing(16);
 
-    QLabel *volLabel = new QLabel("Sound volume (not implemented):", m_optionsWidget);
+    QLabel *volLabel = new QLabel("Sound volume:", m_optionsWidget);
     volLabel->setStyleSheet("QLabel { color: white; }");
     optLayout->addWidget(volLabel, 0, Qt::AlignHCenter);
 
@@ -232,7 +233,7 @@ void Menu::setupUI()
 
     m_volumeSlider = new QSlider(Qt::Horizontal, m_optionsWidget);
     m_volumeSlider->setRange(0,100);
-    m_volumeSlider->setValue(80);
+    m_volumeSlider->setValue(80); // Default value, will be synced below
     m_volumeSlider->setFixedWidth(260);
 
     m_volumePercentLabel = new QLabel(QString("%1%").arg(m_volumeSlider->value()), m_optionsWidget);
@@ -316,7 +317,7 @@ void Menu::setupPauseMenuUI()
     pauseOptLayout->setContentsMargins(40,40,40,40);
     pauseOptLayout->setSpacing(16);
 
-    QLabel *pauseVolLabel = new QLabel("Sound volume (not implemented):", m_pauseOptionsWidget);
+    QLabel *pauseVolLabel = new QLabel("Sound volume:", m_pauseOptionsWidget);
     pauseVolLabel->setStyleSheet("QLabel { color: white; }");
     pauseOptLayout->addWidget(pauseVolLabel, 0, Qt::AlignHCenter);
 
@@ -326,7 +327,7 @@ void Menu::setupPauseMenuUI()
 
     m_pauseVolumeSlider = new QSlider(Qt::Horizontal, m_pauseOptionsWidget);
     m_pauseVolumeSlider->setRange(0,100);
-    m_pauseVolumeSlider->setValue(80);
+    m_pauseVolumeSlider->setValue(80); // Default value, will be synced below
     m_pauseVolumeSlider->setFixedWidth(260);
 
     m_pauseVolumePercentLabel = new QLabel(QString("%1%").arg(m_pauseVolumeSlider->value()), m_pauseOptionsWidget);
@@ -357,6 +358,15 @@ void Menu::setupPauseMenuUI()
     connect(m_pauseOptionsBackButton, &QPushButton::clicked, this, &Menu::onBackFromPauseOptions);
     connect(m_pauseVolumeSlider, &QSlider::valueChanged, this, &Menu::onVolumeChanged);
     connect(m_pauseFullscreenCheck, &QCheckBox::toggled, this, &Menu::onFullscreenChanged);
+    
+    // Initialize sliders with current SoundManager volume (80% default)
+    // Block signals to prevent triggering onVolumeChanged during initialization
+    m_volumeSlider->blockSignals(true);
+    m_pauseVolumeSlider->blockSignals(true);
+    m_volumeSlider->setValue(80);
+    m_pauseVolumeSlider->setValue(80);
+    m_volumeSlider->blockSignals(false);
+    m_pauseVolumeSlider->blockSignals(false);
 }
 
 void Menu::showPauseMenu(bool show)
@@ -678,10 +688,27 @@ void Menu::onBackFromOptions()
 
 void Menu::onVolumeChanged(int value)
 {
+    // Update both sliders to stay in sync
+    if (m_volumeSlider && m_volumeSlider->value() != value) {
+        m_volumeSlider->blockSignals(true);
+        m_volumeSlider->setValue(value);
+        m_volumeSlider->blockSignals(false);
+    }
+    if (m_pauseVolumeSlider && m_pauseVolumeSlider->value() != value) {
+        m_pauseVolumeSlider->blockSignals(true);
+        m_pauseVolumeSlider->setValue(value);
+        m_pauseVolumeSlider->blockSignals(false);
+    }
+    
+    // Update labels
     if (m_volumePercentLabel)
         m_volumePercentLabel->setText(QString("%1%").arg(value));
     if (m_pauseVolumePercentLabel)
         m_pauseVolumePercentLabel->setText(QString("%1%").arg(value));
+    
+    // Update sound manager volume
+    SoundManager::instance()->setVolume(value);
+    
     emit volumeChanged(value);
 }
 

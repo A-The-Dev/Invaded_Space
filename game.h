@@ -32,6 +32,9 @@ public:
 
     // Start the game loop and initial spawns (call when menu Start pressed).
     void startGame();
+    
+    // Access to player for customization
+    Player* getPlayer() { return player; }
 
 protected:
     void mouseMoveEvent(QMouseEvent *event) override;
@@ -54,10 +57,6 @@ public slots:
     void toggleFullscreen();
     void onPauseMenuRequested();
     void onResumeGame();
-    void onReturnToTitle();
-
-signals:
-    void returnToMainMenu();
 
 private:
     QGraphicsScene *scene;
@@ -87,8 +86,8 @@ private:
     int currentBossID = 0;
     bool m_isPaused = false;
 
-    // tracks whether startGame() already ran
     bool m_gameStarted = false;
+    bool m_upgradeMenuOpen = false;
 
     Menu *m_pauseMenu;
 

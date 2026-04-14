@@ -9,6 +9,7 @@
 
 class QScrollArea;
 class QVBoxLayout;
+class QPushButton;
 
 class Leaderboard : public QWidget {
     Q_OBJECT
@@ -21,6 +22,14 @@ public:
     void activateSelected();
     void refresh(); // reload entries
 
+    // Endgame mode: show restart/quit buttons below leaderboard
+    void setEndgameMode(bool endgame);
+    bool isEndgameMode() const { return m_isEndgameMode; }
+
+signals:
+    void restartRequested();
+    void quitRequested();
+
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
@@ -28,11 +37,20 @@ protected:
 private:
     QFrame* createEntryWidget(const QJsonObject& obj);
     void updateSelectionUI();
+    void updateFontSizes();
+    
     QVector<QFrame*> m_entries;
     QScrollArea* m_scroll;
     QWidget* m_container;
     QVBoxLayout* m_listLayout;
     int m_selectedIndex;
+    
+    // Endgame mode widgets
+    QWidget* m_buttonContainer;
+    QVBoxLayout* m_buttonLayout;
+    QPushButton* m_restartButton;
+    QPushButton* m_quitButton;
+    bool m_isEndgameMode;
 };
 
 #endif

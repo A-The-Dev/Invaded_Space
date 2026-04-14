@@ -28,3 +28,11 @@ void LevelSystem::addXP(int xp)
 
     emit xpChanged(currentXP, xpToNextLevel);
 }
+
+void LevelSystem::reset()
+{
+    level = 1;
+    currentXP = 0;
+    xpToNextLevel = calculateXPForLevel(2);
+    emit xpChanged(currentXP, xpToNextLevel);
+}

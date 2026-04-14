@@ -1,4 +1,5 @@
 #include "Grenades.h"
+#include "SoundManager.h"
 #include <QGraphicsScene>
 #include <QtMath>
 
@@ -43,6 +44,9 @@ void Grenades::move()
         isExploding = true;
         speed = 0;
         sprite = QPixmap("./resources/grenadeExplosion.png");
+        
+        // Play explosion sound when grenade starts exploding
+        SoundManager::instance()->playSound(SoundManager::GrenadeExplosion);
     }
 }
 

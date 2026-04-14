@@ -1,4 +1,5 @@
 #include "upgrade_menu.h"
+#include "SoundManager.h"
 #include <QKeyEvent>
 #include <QApplication>
 #include <QEvent>
@@ -38,9 +39,9 @@ UpgradeMenu::UpgradeMenu(QWidget *parent) : QDialog(parent)
     btnContainerLayout->setContentsMargins(0, 0, 0, 0);
     btnContainerLayout->setSpacing(15);
 
-    btnSpeed = new QPushButton("Vitesse (+0.4)", this);
-    btnDamage = new QPushButton("Dégâts (+1)", this);
-    btnHealth = new QPushButton("Vie Max (+2)", this);
+    btnSpeed = new QPushButton("Speed (+0.4)", this);
+    btnDamage = new QPushButton("Damage (+1)", this);
+    btnHealth = new QPushButton("Max Health (+2)", this);
 
     btnContainerLayout->addWidget(btnSpeed, 0, Qt::AlignCenter);
     btnContainerLayout->addWidget(btnDamage, 0, Qt::AlignCenter);
@@ -49,9 +50,21 @@ UpgradeMenu::UpgradeMenu(QWidget *parent) : QDialog(parent)
     mainLayout->addWidget(buttonContainer, 0, Qt::AlignCenter);
     mainLayout->addStretch(1);
 
-    connect(btnSpeed, &QPushButton::clicked, [this]() { emit upgradeSelected(0); accept(); });
-    connect(btnDamage, &QPushButton::clicked, [this]() { emit upgradeSelected(1); accept(); });
-    connect(btnHealth, &QPushButton::clicked, [this]() { emit upgradeSelected(2); accept(); });
+    connect(btnSpeed, &QPushButton::clicked, [this]() { 
+        SoundManager::instance()->playSound(SoundManager::UpgradeSelected);
+        emit upgradeSelected(0); 
+        accept(); 
+    });
+    connect(btnDamage, &QPushButton::clicked, [this]() { 
+        SoundManager::instance()->playSound(SoundManager::UpgradeSelected);
+        emit upgradeSelected(1); 
+        accept(); 
+    });
+    connect(btnHealth, &QPushButton::clicked, [this]() { 
+        SoundManager::instance()->playSound(SoundManager::UpgradeSelected);
+        emit upgradeSelected(2); 
+        accept(); 
+    });
     
     this->setStyleSheet(R"(
     QDialog {
@@ -181,6 +194,10 @@ void UpgradeMenu::resizeEvent(QResizeEvent* event)
 void UpgradeMenu::showEvent(QShowEvent* event)
 {
     QDialog::showEvent(event);
+    
+    // Play upgrade menu appear sound
+    SoundManager::instance()->playSound(SoundManager::UpgradeMenuAppear);
+    
     if (m_entranceAnimation) {
         m_entranceAnimation->start();
     }
