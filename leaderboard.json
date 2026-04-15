@@ -62,5 +62,13 @@
         "lvl": 1,
         "name": "Player",
         "score": 0
+    },
+    {
+        "atk": 2,
+        "color": "#AA007FB4",
+        "hp": 22,
+        "lvl": 4,
+        "name": "Rambo",
+        "score": 170
     }
 ]
