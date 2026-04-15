@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QList>
 #include <QVector>
+#include <QPropertyAnimation>
 
 class SpaceObject;
 class QPushButton;
@@ -17,6 +18,7 @@ class Leaderboard;
 class Menu : public QWidget
 {
     Q_OBJECT
+    Q_PROPERTY(qreal titleGlow READ titleGlow WRITE setTitleGlow)
 public:
     explicit Menu(QWidget *parent = nullptr);
     ~Menu() override;
@@ -24,6 +26,9 @@ public:
     // Shows the pause menu overlay
     void showPauseMenu(bool show);
     bool isPauseMenuVisible() const;
+
+    qreal titleGlow() const { return m_titleGlow; }
+    void setTitleGlow(qreal glow);
 
 signals:
     void startGameRequested();
@@ -57,6 +62,7 @@ private:
     void spawnSpaceObject();
     void loadPixelFontIfAvailable();
     void layoutResponsive();
+    void setupTitleAnimation();
 
     enum Page { MainPage = 0, OptionsPage = 1, PauseMenuPage = 2, PauseOptionsPage = 3 };
     Page m_currentPage;
@@ -90,12 +96,14 @@ private:
     QLabel *m_volumePercentLabel;
     QCheckBox *m_fullscreenCheck;
     QPushButton *m_optionsBackButton;
+    QWidget* m_volumeContainer;
 
     // Pause options controls (separate from main options)
     QSlider *m_pauseVolumeSlider;
     QLabel *m_pauseVolumePercentLabel;
     QCheckBox *m_pauseFullscreenCheck;
     QPushButton *m_pauseOptionsBackButton;
+    QWidget* m_pauseVolumeContainer;
 
     // Navigation / selector
     QLabel *m_selectorLabel;                 // ship icon or marker
@@ -107,6 +115,10 @@ private:
 
     Leaderboard *m_leaderboard;
     QWidget *m_modalBackdrop; // darkened backdrop when leaderboard visible
+
+    // Animation
+    QPropertyAnimation *m_titleGlowAnimation;
+    qreal m_titleGlow;
 
     // State
     int m_spawnTimer;

@@ -22,6 +22,7 @@
 #include <QTimer>
 #include <QFile>
 #include <QGraphicsBlurEffect>
+#include <QGraphicsDropShadowEffect>
 
 Menu::Menu(QWidget *parent)
     : QWidget(parent),
@@ -77,27 +78,23 @@ Menu::Menu(QWidget *parent)
     setupUI();
     setupPauseMenuUI();
 
-    // selector label (ship icon). try multiple paths for resource.
+    loadPixelFontIfAvailable();
+
+    // selector label (ship icon)
     m_selectorLabel = new QLabel(m_overlayWidget);
     m_selectorLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
 
-    QPixmap ship;
-    const QStringList shipCandidates = {
-        ":/resources/ship.png",
-        ":/resources/spaceship.png",
-        "./resources/ship.png",
-        "./resources/spaceship.png"
-    };
-    for (const QString &p : shipCandidates) {
-        // Try to load each path; stop when successful
-        if (ship.load(p)) break;
-    }
+    QPixmap ship("./resources/spaceship.png");
 
     if (!ship.isNull()) {
-        QPixmap tinted(ship.size());
+        QTransform transform;
+        transform.rotate(90);
+        QPixmap rotated = ship.transformed(transform, Qt::SmoothTransformation);
+        
+        QPixmap tinted(rotated.size());
         tinted.fill(Qt::transparent);
         QPainter p(&tinted);
-        p.drawPixmap(0,0, ship);
+        p.drawPixmap(0, 0, rotated);
         p.setCompositionMode(QPainter::CompositionMode_SourceIn);
         p.fillRect(tinted.rect(), Qt::white);
         p.end();
@@ -117,7 +114,6 @@ Menu::Menu(QWidget *parent)
     m_selectorLabel->setFixedSize(40,40);
     m_selectorLabel->hide();
 
-    // backdrop to dim menu when leaderboard visible
     m_modalBackdrop = new QWidget(this);
     m_modalBackdrop->setStyleSheet("background: rgba(0,0,0,160);");
     m_modalBackdrop->hide();
@@ -144,9 +140,9 @@ Menu::Menu(QWidget *parent)
 
     // main/options items
     m_mainItems = { m_startButton, m_optionsButton, m_leaderboardButton, m_quitButton };
-    m_optionsItems = { m_volumeSlider, m_fullscreenCheck, m_optionsBackButton };
+    m_optionsItems = { m_volumeContainer, m_fullscreenCheck, m_optionsBackButton };
     m_pauseItems = { m_resumeButton, m_pauseOptionsButton, m_pauseQuitButton };
-    m_pauseOptionsItems = { m_pauseVolumeSlider, m_pauseFullscreenCheck, m_pauseOptionsBackButton };
+    m_pauseOptionsItems = { m_pauseVolumeContainer, m_pauseFullscreenCheck, m_pauseOptionsBackButton };
 
     QTimer::singleShot(0, this, [this](){
         m_selectedIndex = 0;
@@ -162,7 +158,12 @@ Menu::Menu(QWidget *parent)
 
 Menu::~Menu()
 {
-    for (SpaceObject *o : m_spaceObjects)
+    if (m_titleGlowAnimation) {
+        m_titleGlowAnimation->stop();
+        delete m_titleGlowAnimation;
+    }
+
+    for (SpaceObject* o : m_spaceObjects)
     {
         if (o->scene()) o->scene()->removeItem(o);
         delete o;
@@ -187,6 +188,9 @@ void Menu::setupUI()
     m_titleLabel->setFont(titleFont);
     m_titleLabel->setStyleSheet("QLabel { color: white; }");
     mainLayout->addWidget(m_titleLabel, 0, Qt::AlignHCenter);
+
+    // Setup title animation
+    setupTitleAnimation();
 
     QWidget *btnBox = new QWidget(m_mainMenuWidget);
     QVBoxLayout *btnLayout = new QVBoxLayout(btnBox);
@@ -223,27 +227,28 @@ void Menu::setupUI()
     optLayout->setContentsMargins(40,40,40,40);
     optLayout->setSpacing(16);
 
-    QLabel *volLabel = new QLabel("Sound volume:", m_optionsWidget);
+    m_volumeContainer = new QWidget(m_optionsWidget);
+    QHBoxLayout *volRow = new QHBoxLayout(m_volumeContainer);
+    volRow->setSpacing(8);
+    volRow->setContentsMargins(0, 0, 0, 0);
+
+    QLabel *volLabel = new QLabel("Sound:", m_volumeContainer);
     volLabel->setStyleSheet("QLabel { color: white; }");
-    optLayout->addWidget(volLabel, 0, Qt::AlignHCenter);
+    volRow->addWidget(volLabel, 0, Qt::AlignRight);
 
-    QHBoxLayout *volRow = new QHBoxLayout();
-    volRow->setSpacing(12);
-    volRow->setAlignment(Qt::AlignCenter);
-
-    m_volumeSlider = new QSlider(Qt::Horizontal, m_optionsWidget);
+    m_volumeSlider = new QSlider(Qt::Horizontal, m_volumeContainer);
     m_volumeSlider->setRange(0,100);
-    m_volumeSlider->setValue(80); // Default value, will be synced below
-    m_volumeSlider->setFixedWidth(260);
+    m_volumeSlider->setValue(80);
+    m_volumeSlider->setFixedWidth(200);
+    volRow->addWidget(m_volumeSlider, 0, Qt::AlignLeft);
 
-    m_volumePercentLabel = new QLabel(QString("%1%").arg(m_volumeSlider->value()), m_optionsWidget);
+    m_volumePercentLabel = new QLabel(QString("%1%").arg(m_volumeSlider->value()), m_volumeContainer);
     m_volumePercentLabel->setStyleSheet("QLabel { color: white; }");
     m_volumePercentLabel->setFixedWidth(48);
     m_volumePercentLabel->setAlignment(Qt::AlignCenter);
+    volRow->addWidget(m_volumePercentLabel, 0, Qt::AlignLeft);
 
-    volRow->addWidget(m_volumeSlider);
-    volRow->addWidget(m_volumePercentLabel);
-    optLayout->addLayout(volRow);
+    optLayout->addWidget(m_volumeContainer);
 
     m_fullscreenCheck = new QCheckBox("Fullscreen", m_optionsWidget);
     m_fullscreenCheck->setStyleSheet("QCheckBox { color: white; }");
@@ -266,6 +271,51 @@ void Menu::setupUI()
     connect(m_optionsBackButton, &QPushButton::clicked, this, &Menu::onBackFromOptions);
     connect(m_volumeSlider, &QSlider::valueChanged, this, &Menu::onVolumeChanged);
     connect(m_fullscreenCheck, &QCheckBox::toggled, this, &Menu::onFullscreenChanged);
+}
+
+void Menu::setupTitleAnimation()
+{
+    m_titleGlow = 0.0;
+    
+    m_titleGlowAnimation = new QPropertyAnimation(this, "titleGlow", this);
+    m_titleGlowAnimation->setDuration(3500);
+    m_titleGlowAnimation->setStartValue(0.0);
+    m_titleGlowAnimation->setEndValue(1.0);
+    m_titleGlowAnimation->setEasingCurve(QEasingCurve::InOutSine);
+    m_titleGlowAnimation->setLoopCount(-1);
+    m_titleGlowAnimation->start();
+}
+
+void Menu::setTitleGlow(qreal glow)
+{
+    m_titleGlow = glow;
+
+    if (!m_titleLabel) return;
+
+    qreal phase = glow * 2.0 * 3.14159;
+    qreal colorValue = (qSin(phase) + 1.0) / 2.0;
+
+    int r = static_cast<int>(100 + 155 * colorValue);
+    int g = static_cast<int>(200 - 100 * colorValue);
+    int b = static_cast<int>(255 - 55 * colorValue);
+
+    QString colorStyle = QString("QLabel { color: rgb(%1, %2, %3); }").arg(r).arg(g).arg(b);
+    m_titleLabel->setStyleSheet(colorStyle);
+
+    qreal blurIntensity = 20 + 15 * qAbs(qSin(phase));
+
+    qreal verticalOffset = 3.0 * qSin(phase);
+
+    QGraphicsDropShadowEffect* glowEffect = new QGraphicsDropShadowEffect();
+    glowEffect->setColor(QColor(r, g, b, 200));
+    glowEffect->setBlurRadius(blurIntensity);
+    glowEffect->setOffset(0, verticalOffset);
+
+    if (m_titleLabel->graphicsEffect()) {
+        delete m_titleLabel->graphicsEffect();
+    }
+
+    m_titleLabel->setGraphicsEffect(glowEffect);
 }
 
 void Menu::setupPauseMenuUI()
@@ -317,27 +367,28 @@ void Menu::setupPauseMenuUI()
     pauseOptLayout->setContentsMargins(40,40,40,40);
     pauseOptLayout->setSpacing(16);
 
-    QLabel *pauseVolLabel = new QLabel("Sound volume:", m_pauseOptionsWidget);
+    m_pauseVolumeContainer = new QWidget(m_pauseOptionsWidget);
+    QHBoxLayout *pauseVolRow = new QHBoxLayout(m_pauseVolumeContainer);
+    pauseVolRow->setSpacing(8);
+    pauseVolRow->setContentsMargins(0, 0, 0, 0);
+
+    QLabel *pauseVolLabel = new QLabel("Sound:", m_pauseVolumeContainer);
     pauseVolLabel->setStyleSheet("QLabel { color: white; }");
-    pauseOptLayout->addWidget(pauseVolLabel, 0, Qt::AlignHCenter);
+    pauseVolRow->addWidget(pauseVolLabel, 0, Qt::AlignRight);
 
-    QHBoxLayout *pauseVolRow = new QHBoxLayout();
-    pauseVolRow->setSpacing(12);
-    pauseVolRow->setAlignment(Qt::AlignCenter);
-
-    m_pauseVolumeSlider = new QSlider(Qt::Horizontal, m_pauseOptionsWidget);
+    m_pauseVolumeSlider = new QSlider(Qt::Horizontal, m_pauseVolumeContainer);
     m_pauseVolumeSlider->setRange(0,100);
-    m_pauseVolumeSlider->setValue(80); // Default value, will be synced below
-    m_pauseVolumeSlider->setFixedWidth(260);
+    m_pauseVolumeSlider->setValue(80);
+    m_pauseVolumeSlider->setFixedWidth(200);
+    pauseVolRow->addWidget(m_pauseVolumeSlider, 0, Qt::AlignLeft);
 
-    m_pauseVolumePercentLabel = new QLabel(QString("%1%").arg(m_pauseVolumeSlider->value()), m_pauseOptionsWidget);
+    m_pauseVolumePercentLabel = new QLabel(QString("%1%").arg(m_pauseVolumeSlider->value()), m_pauseVolumeContainer);
     m_pauseVolumePercentLabel->setStyleSheet("QLabel { color: white; }");
     m_pauseVolumePercentLabel->setFixedWidth(48);
     m_pauseVolumePercentLabel->setAlignment(Qt::AlignCenter);
+    pauseVolRow->addWidget(m_pauseVolumePercentLabel, 0, Qt::AlignLeft);
 
-    pauseVolRow->addWidget(m_pauseVolumeSlider);
-    pauseVolRow->addWidget(m_pauseVolumePercentLabel);
-    pauseOptLayout->addLayout(pauseVolRow);
+    pauseOptLayout->addWidget(m_pauseVolumeContainer);
 
     m_pauseFullscreenCheck = new QCheckBox("Fullscreen", m_pauseOptionsWidget);
     m_pauseFullscreenCheck->setStyleSheet("QCheckBox { color: white; }");
@@ -378,8 +429,7 @@ void Menu::showPauseMenu(bool show)
         QStackedLayout *stack = qobject_cast<QStackedLayout*>(m_overlayWidget->layout());
         if (stack) stack->setCurrentWidget(m_pauseMenuWidget);
         m_selectedIndex = 0;
-        
-        // Show as modal overlay with blur effect on background
+
         if (m_view) {
             m_view->setGraphicsEffect(new QGraphicsBlurEffect());
             if (auto blurEffect = qobject_cast<QGraphicsBlurEffect*>(m_view->graphicsEffect())) {
@@ -387,7 +437,6 @@ void Menu::showPauseMenu(bool show)
             }
         }
         
-        // Set overlay with semi-transparent dark background
         m_overlayWidget->setStyleSheet("background: rgba(0, 0, 0, 80);");
         m_overlayWidget->show();
         m_overlayWidget->raise();
@@ -401,7 +450,7 @@ void Menu::showPauseMenu(bool show)
         m_isPauseMenuVisible = false;
         m_overlayWidget->setStyleSheet("background: transparent;");
         if (m_view) {
-            m_view->setGraphicsEffect(nullptr);  // Remove blur effect
+            m_view->setGraphicsEffect(nullptr);
         }
         this->hide();
         emit resumeGameRequested();
@@ -432,7 +481,6 @@ void Menu::showLeaderboard(bool show)
             m_overlayWidget->layout()->activate();
 
         QTimer::singleShot(0, this, [this, lw, lh]() {
-            // reposition selector (if needed) and ensure leaderboard centered
             updateSelectorPosition();
             if (m_leaderboard && m_leaderboard->isVisible()) {
                 QSize s2 = size();
@@ -489,7 +537,6 @@ void Menu::onPauseQuitClicked()
 void Menu::keyPressEvent(QKeyEvent *event)
 {
     if (m_leaderboard && m_leaderboard->isVisible()) {
-        // forward navigation to leaderboard
         int key = event->key();
         if (key == Qt::Key_W || key == Qt::Key_Up) { m_leaderboard->selectPrevious(); event->accept(); return; }
         if (key == Qt::Key_S || key == Qt::Key_Down) { m_leaderboard->selectNext(); event->accept(); return; }
@@ -499,7 +546,6 @@ void Menu::keyPressEvent(QKeyEvent *event)
 
     int key = event->key();
 
-    // Allow Escape to resume game from pause menu
     if (key == Qt::Key_Escape && m_isPauseMenuVisible) {
         showPauseMenu(false);
         event->accept();
@@ -527,7 +573,8 @@ void Menu::keyPressEvent(QKeyEvent *event)
 
         if (items && m_selectedIndex >=0 && m_selectedIndex < items->size()) {
             QWidget *w = (*items)[m_selectedIndex];
-            if (auto slider = qobject_cast<QSlider*>(w)) {
+            QSlider *slider = w->findChild<QSlider*>();
+            if (slider) {
                 int v = slider->value();
                 slider->setValue(qMax(0, v - 5));
             } else if (auto cb = qobject_cast<QCheckBox*>(w)) {
@@ -547,7 +594,8 @@ void Menu::keyPressEvent(QKeyEvent *event)
 
         if (items && m_selectedIndex >=0 && m_selectedIndex < items->size()) {
             QWidget *w = (*items)[m_selectedIndex];
-            if (auto slider = qobject_cast<QSlider*>(w)) {
+            QSlider *slider = w->findChild<QSlider*>();
+            if (slider) {
                 int v = slider->value();
                 slider->setValue(qMin(100, v + 5));
             } else if (auto cb = qobject_cast<QCheckBox*>(w)) {
@@ -578,7 +626,6 @@ bool Menu::eventFilter(QObject *watched, QEvent *event)
         if (m_modalBackdrop) m_modalBackdrop->setGeometry(rect());
         layoutResponsive();
 
-        // Defer selector and leaderboard repositioning until layouts update (prevents stale coords)
         if (m_overlayWidget && m_overlayWidget->layout())
             m_overlayWidget->layout()->activate();
 
@@ -613,7 +660,6 @@ void Menu::resizeEvent(QResizeEvent *event)
     if (m_overlayWidget && m_overlayWidget->layout())
         m_overlayWidget->layout()->activate();
 
-    // Defer selector update so child widgets have correct geometry
     QTimer::singleShot(0, this, [this]() {
         updateSelectorPosition();
     });
@@ -699,8 +745,7 @@ void Menu::onVolumeChanged(int value)
         m_pauseVolumeSlider->setValue(value);
         m_pauseVolumeSlider->blockSignals(false);
     }
-    
-    // Update labels
+
     if (m_volumePercentLabel)
         m_volumePercentLabel->setText(QString("%1%").arg(value));
     if (m_pauseVolumePercentLabel)
@@ -725,7 +770,6 @@ void Menu::onUpdateScene()
     {
         if (!o) continue;
         o->update();
-        // remove when lifetime property expires (some SpaceObject implementations use this)
         if (o->property("lifetime").isValid() && o->property("lifetime").toReal() <= 0)
             toRemove.append(o);
     }
@@ -738,7 +782,7 @@ void Menu::onUpdateScene()
     }
 
     m_spawnTimer++;
-    if (m_spawnTimer >= 120) // ~2s at 60FPS
+    if (m_spawnTimer >= 120)
     {
         m_spawnTimer = 0;
         spawnSpaceObject();
@@ -747,7 +791,6 @@ void Menu::onUpdateScene()
 
 void Menu::onStartClicked()
 {
-    // Start game and hide menu overlay
     emit startGameRequested();
     hide();
 }
@@ -795,7 +838,6 @@ void Menu::activateSelected()
     if (!w) return;
 
     if (auto pb = qobject_cast<QPushButton*>(w)) {
-        // Handle leaderboard button specially so keyboard activation uses showLeaderboard
         if (pb == m_leaderboardButton) {
             showLeaderboard(true);
         } else {
@@ -804,7 +846,6 @@ void Menu::activateSelected()
     }
     else if (auto slider = qobject_cast<QSlider*>(w)) {
         Q_UNUSED(slider);
-        // no action on Enter for slider
     }
     else if (auto cb = qobject_cast<QCheckBox*>(w)) {
         cb->toggle();
@@ -813,41 +854,34 @@ void Menu::activateSelected()
 
 void Menu::loadPixelFontIfAvailable()
 {
-    const QStringList candidates = {
-        "./resources/SpaceFont.ttf",
-        ":/resources/SpaceFont.ttf",
-    };
-
-    for (const QString &path : candidates)
+    int id = QFontDatabase::addApplicationFont("./resources/SpaceFont3.otf");
+    if (id != -1)
     {
-        int id = QFontDatabase::addApplicationFont(path);
-        if (id != -1)
+        QString family = QFontDatabase::applicationFontFamilies(id).value(0);
+        if (!family.isEmpty())
         {
-            QString family = QFontDatabase::applicationFontFamilies(id).value(0);
-            if (!family.isEmpty())
-            {
-                QFont f(family);
-                f.setBold(true);
-                m_titleLabel->setFont(f);
-                m_usingPixelFont = true;
-                m_titleLabel->setStyleSheet("QLabel { color: white; }");
-                return;
-            }
+            QFont f(family, 36, QFont::Bold);
+            m_titleLabel->setFont(f);
+            m_usingPixelFont = true;
+            m_titleLabel->setStyleSheet("QLabel { color: white; }");
         }
     }
 }
 
 void Menu::updateSelectorPosition()
 {
-    QVector<QWidget*> *list = nullptr;
+    QVector<QWidget*>* list = nullptr;
 
     if (m_currentPage == MainPage) {
         list = &m_mainItems;
-    } else if (m_currentPage == OptionsPage) {
+    }
+    else if (m_currentPage == OptionsPage) {
         list = &m_optionsItems;
-    } else if (m_currentPage == PauseMenuPage) {
+    }
+    else if (m_currentPage == PauseMenuPage) {
         list = &m_pauseItems;
-    } else if (m_currentPage == PauseOptionsPage) {
+    }
+    else if (m_currentPage == PauseOptionsPage) {
         list = &m_pauseOptionsItems;
     }
 
@@ -857,7 +891,7 @@ void Menu::updateSelectorPosition()
     }
 
     int idx = qBound(0, m_selectedIndex, list->size() - 1);
-    QWidget *w = (*list)[idx];
+    QWidget* w = (*list)[idx];
     if (!w) {
         m_selectorLabel->hide();
         return;
@@ -875,29 +909,34 @@ void Menu::updateSelectorPosition()
     m_selectorLabel->raise();
     m_selectorLabel->show();
 
-    // Visual highlight for buttons only
+    // Visual highlight for buttons - now includes hover effect
     QString baseBtn =
         "QPushButton { color: white; background: rgba(30,30,50,200); border-radius:6px; padding: 10px; font-weight: bold; }"
         "QPushButton:hover { background: rgba(60,60,90,220); }";
-    QString highlight = "outline: 2px solid rgba(200,200,255,0.18);";
+    QString selectedBtn =
+        "QPushButton { color: white; background: rgba(60,60,90,220); border-radius:6px; padding: 10px; font-weight: bold; outline: 2px solid rgba(200,200,255,0.18); }"
+        "QPushButton:hover { background: rgba(60,60,90,220); }";
 
-    auto highlightButtons = [&](QVector<QWidget*> &items) {
+    auto highlightButtons = [&](QVector<QWidget*>& items) {
         for (int i = 0; i < items.size(); ++i) {
-            QWidget *u = items[i];
+            QWidget* u = items[i];
             if (!u) continue;
             if (auto pb = qobject_cast<QPushButton*>(u)) {
-                pb->setStyleSheet((i == idx) ? baseBtn + " " + highlight : baseBtn);
+                pb->setStyleSheet((i == idx) ? selectedBtn : baseBtn);
             }
         }
-    };
+        };
 
     if (m_currentPage == MainPage) {
         highlightButtons(m_mainItems);
-    } else if (m_currentPage == OptionsPage) {
+    }
+    else if (m_currentPage == OptionsPage) {
         highlightButtons(m_optionsItems);
-    } else if (m_currentPage == PauseMenuPage) {
+    }
+    else if (m_currentPage == PauseMenuPage) {
         highlightButtons(m_pauseItems);
-    } else if (m_currentPage == PauseOptionsPage) {
+    }
+    else if (m_currentPage == PauseOptionsPage) {
         highlightButtons(m_pauseOptionsItems);
     }
 }
