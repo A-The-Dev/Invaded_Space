@@ -586,9 +586,10 @@ void Game::onLevelUp(int level) {
             qDebug() << "Applied damage upgrade, new damage =" << player->getAttackDamage();
         }
         else if (choice == 2) { // Vie
+            player->refillHealth();
             player->increaseMaxHealth(2);
+            qDebug() << "Applied health upgrade, new health =" << player->getHealth();
         }
-        player->refillHealth();
         });
 
     // Affiche le menu 
