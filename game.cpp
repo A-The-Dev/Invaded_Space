@@ -41,7 +41,7 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
     player->setEnemyLists(&enemies, &bosses);
 
     arduino = new ArduinoManager(this);
-    if (arduino->connectToArduino("COM3")) {
+    if (arduino->connectToArduino("COM5")) {
         qDebug() << "Connexion Arduino REUSSIE sur COM3";
         player->setUseJoystick(true);
     } else {
@@ -56,7 +56,7 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
             // On appelle le menu de pause 
             this->onPauseMenuRequested();
         }
-        SoundManager::instance()->setVolume(volume);
+        //SoundManager::instance()->setVolume(volume);
     });
 
 
@@ -616,18 +616,20 @@ void Game::updateGame()
 
     if (bossSpawnRequested)
     {
-        if (levelSystem->getLevel() > 15 && bosses.size() < 2)
-        {
-            spawnBoss();
-            bossSpawnRequested = false;
+        if (levelSystem->getLevel() > 2) {
+            if (levelSystem->getLevel() > 15 && bosses.size() < 2)
+            {
+                spawnBoss();
+                bossSpawnRequested = false;
+            }
+            else if (levelSystem->getLevel() < 15 && bosses.size() < 1)
+            {
+                spawnBoss();
+                bossSpawnRequested = false;
+            }
         }
-        else if(levelSystem->getLevel() < 15 && bosses.size() < 1)
-        {
-            spawnBoss();
-            bossSpawnRequested = false;
-		}
-
     }
+
     for (int i = ultimates.size() - 1; i >= 0; --i)
     {
         ultimates[i]->move();
