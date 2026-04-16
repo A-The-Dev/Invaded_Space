@@ -54,9 +54,11 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
         player->setUseJoystick(false);
     }
 
-    // Receive Arduino commands (if connected)
-    connect(arduino, &ArduinoManager::commandReceived, this, [this](double x, double y, bool tir, bool ulti) {
-        player->updateFromJoystick(x, y, tir, ulti);
+    // 1. Reçoit les données de l'Arduino et fait bouger/tirer le joueur
+        //connect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
+    connect(arduino, &ArduinoManager::commandReceived, this, [this](double x, double y, bool tir, bool ulti, bool grenade, bool BossSpawn) {
+        player->updateFromJoystick(x, y, tir, ulti, grenade);
+        this->bossSpawnRequested = BossSpawn;
     });
 
     connect(player, &Player::grenadeCountChanged, hud, &HUD::updateGrenades);
@@ -679,14 +681,21 @@ void Game::updateGame()
         }
     }
 
-    int currentLevel = levelSystem->getLevel();
 
-    if (currentLevel > 0 && currentLevel % 5 == 0) {
-        // Only spawn if we haven't spawned one for THIS level yet
-        if (bosses.isEmpty() && lastBossLevel != currentLevel) {
-            spawnBoss();
-            lastBossLevel = currentLevel; // Lock spawning for this level
+    // Only spawn if we haven't spawned one for THIS level yet
+    if (bossSpawnRequested)
+    {
+        if (levelSystem->getLevel() > 15 && bosses.size() < 2)
+        {
+            spawnBoss(); // Lock spawning for this level
+            bossSpawnRequested = false;
         }
+        else if(levelSystem->getLevel() < 15 && bosses.size() < 1)
+        {
+            spawnBoss(); // Lock spawning for this level
+            bossSpawnRequested = false;
+		}
+
     }
     for (int i = ultimates.size() - 1; i >= 0; --i)
     {

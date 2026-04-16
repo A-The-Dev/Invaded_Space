@@ -80,6 +80,7 @@ private:
     ArduinoManager *arduino;
     int currentScore = 0;
     bool UltUsed = false;
+    bool bossSpawnRequested = false;
 
     bool isFullscreen = false;
     QRect previousGeometry;

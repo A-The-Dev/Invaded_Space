@@ -49,7 +49,7 @@ public:
     void setAttackDamage(int val) { attackDamage = val; }
     bool getIsUltimateReady() const { return isUltimateReady; }
     void processMovement();
-    void updateFromJoystick(double axisX, double axisY, bool tir, bool ulti);    
+    void updateFromJoystick(double axisX, double axisY, bool tir, bool ulti, bool grenade);    
 	void setPlayerName(const string& name) { playerName = name; }
 	string getPlayerName() const { return playerName; }
     void shoot();
@@ -131,7 +131,8 @@ private:
     double joyY = 0;
     bool isFiring = false;
     bool isUltiPressed = false;
-    
+    bool isGrenadePressed = false;
+
     // Color overlay for ship customization
     QColor shipColor;
 
