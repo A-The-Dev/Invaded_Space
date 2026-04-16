@@ -336,7 +336,7 @@ void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
     painter->drawPixmap(rect().topLeft(), coloredSprite);
 }
 
-void Player::updateFromJoystick(double axisX, double axisY, bool tir, bool ulti)
+void Player::updateFromJoystick(double axisX, double axisY, bool tir, bool ulti, bool grenade)
 {
     this->joyX = axisX;
     this->joyY = axisY;
