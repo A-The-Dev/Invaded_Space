@@ -29,6 +29,10 @@ public:
 
     qreal titleGlow() const { return m_titleGlow; }
     void setTitleGlow(qreal glow);
+	//void navigateWithJoystick (double x, double y, bool select, bool back);
+public slots:
+    // La signature doit être identique au signal commandReceived de l'Arduino
+    void navigateWithJoystick(double x, double y, bool tir, bool ulti, bool grenade, bool boss);
 
 signals:
     void startGameRequested();
@@ -63,6 +67,7 @@ private:
     void loadPixelFontIfAvailable();
     void layoutResponsive();
     void setupTitleAnimation();
+    bool joystickAuNeutre = true;
 
     enum Page { MainPage = 0, OptionsPage = 1, PauseMenuPage = 2, PauseOptionsPage = 3 };
     Page m_currentPage;

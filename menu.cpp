@@ -154,6 +154,7 @@ Menu::Menu(QWidget *parent)
     m_leaderboard = new Leaderboard(this);
     m_leaderboard->hide();
     m_leaderboard->setFocusPolicy(Qt::StrongFocus);
+
 }
 
 Menu::~Menu()
@@ -962,4 +963,33 @@ void Menu::moveSelection(int delta)
     if (m_selectedIndex >= list->size()) m_selectedIndex = 0;
 
     updateSelectorPosition();
+}
+void Menu::navigateWithJoystick(double x, double y, bool tir, bool ulti, bool grenade, bool boss)
+{
+    // Gestion du déplacement du focus (Haut/Bas)
+    if ((y > 0.7 || y < -0.7) && joystickAuNeutre) {
+        this->focusNextChild(); 
+        joystickAuNeutre = false;
+        moveSelection(1);
+
+        updateSelectorPosition();
+    }
+
+    // Remise au neutre du joystick
+    if (y > -0.2 && y < 0.2) {
+        joystickAuNeutre = true;
+    }
+
+    // Gestion de la validation (Tir)
+    if (tir) {
+        QWidget* boutonActuel = this->focusWidget();
+
+        if (boutonActuel) {
+            QKeyEvent pressEvent(QEvent::KeyPress, Qt::Key_Space, Qt::NoModifier);
+            QApplication::sendEvent(boutonActuel, &pressEvent);
+
+            QKeyEvent releaseEvent(QEvent::KeyRelease, Qt::Key_Space, Qt::NoModifier);
+            QApplication::sendEvent(boutonActuel, &releaseEvent);
+        }
+    }
 }

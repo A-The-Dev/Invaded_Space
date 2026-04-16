@@ -8,6 +8,7 @@ int main(int argc, char* argv[])
 {
     QApplication a(argc, argv);
 
+
     Game* game = new Game(nullptr, /*startPaused=*/true);
     game->resize(1024, 768);
     game->show();
