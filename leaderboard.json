@@ -110,5 +110,53 @@
         "lvl": 12,
         "name": "",
         "score": 2370
+    },
+    {
+        "atk": 1,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 1,
+        "name": "",
+        "score": 10
+    },
+    {
+        "atk": 1,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 1,
+        "name": "",
+        "score": 0
+    },
+    {
+        "atk": 4,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 6,
+        "name": "",
+        "score": 770
+    },
+    {
+        "atk": 1,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 1,
+        "name": "",
+        "score": 10
+    },
+    {
+        "atk": 2,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 2,
+        "name": "",
+        "score": 120
+    },
+    {
+        "atk": 2,
+        "color": "#CC9900",
+        "hp": 20,
+        "lvl": 4,
+        "name": "",
+        "score": 270
     }
 ]

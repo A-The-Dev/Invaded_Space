@@ -56,9 +56,11 @@ void ArduinoManager::readSerial() {
             double y = obj["vitesse"].toDouble();
             bool ultimate = obj["accel"].toBool();
             bool tir = obj["bouton2"].toBool();
+            bool grenade = obj["bouton3"].toBool();
+            bool BossSpawn = obj["compteur"].toBool();
 
             // On envoie le signal vers player.cpp
-            emit commandReceived(x, y, tir ,ultimate);
+            emit commandReceived(x, y, tir ,ultimate, grenade, BossSpawn);
         }
     }
 }

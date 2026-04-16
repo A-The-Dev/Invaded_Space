@@ -14,7 +14,7 @@ public:
     void sendGameState(int level, int bossID, bool del);
 
 signals:
-    void commandReceived(double angle, double vitesse, bool tir, bool ultimate);
+    void commandReceived(double angle, double vitesse, bool tir, bool ultimate, bool grenade, bool BossSpawn);
 
 private slots:
     void readSerial();

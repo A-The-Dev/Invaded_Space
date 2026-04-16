@@ -294,12 +294,13 @@ void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
     painter->drawPixmap(rect().topLeft(), sprite);
 }
 
-void Player::updateFromJoystick(double axisX, double axisY, bool tir, bool ulti)
+void Player::updateFromJoystick(double axisX, double axisY, bool tir, bool ulti, bool grenade)
 {
     this->joyX = axisX;
     this->joyY = axisY;
     this->isFiring = tir;
 	this->isUltiPressed = ulti;
+    this->isGrenadePressed = grenade;
 }
 
 void Player::shoot() {
@@ -511,6 +512,9 @@ void Player::processMovement()
         emit requestUltimate();
         //this->launchUltimate();
     }
+    if (isGrenadePressed) {
+        this->throwGrenade();
+	}
 }
 void Player::removeActiveGrenade(int index) 
 {
