@@ -65,9 +65,7 @@ void Player::setEnemyLists(const QList<Enemy*> *enemiesList, const QList<Boss*> 
 
 void Player::keyPressEvent(QKeyEvent *event)
 {
-    if (useJoystick){
-        return;
-    }
+    //qDebug() << "CLAVIER ACTIF";
     if (event->key() == Qt::Key_W) wPressed = true;
     if (event->key() == Qt::Key_A) aPressed = true;
     if (event->key() == Qt::Key_S) sPressed = true;
@@ -82,9 +80,6 @@ void Player::keyPressEvent(QKeyEvent *event)
 
 void Player::keyReleaseEvent(QKeyEvent *event)
 {
-    if (useJoystick) {
-        return;
-    }
     if (event->key() == Qt::Key_W) wPressed = false;
     if (event->key() == Qt::Key_A) aPressed = false;
     if (event->key() == Qt::Key_S) sPressed = false;

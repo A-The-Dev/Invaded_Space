@@ -1,6 +1,8 @@
+
 #include "game.h"
 #include "upgrade_menu.h"
 #include "menu.h"
+#include "SoundManager.h"
 #include <QKeyEvent>
 #include <QLineF>
 #include <QRandomGenerator>
@@ -47,10 +49,16 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
         player->setUseJoystick(false);
     }
 
-    connect(arduino, &ArduinoManager::commandReceived, this, [this](double x, double y, bool tir, bool ulti, bool grenade, bool BossSpawn) {
+    connect(arduino, &ArduinoManager::commandReceived, this, [this](double x, double y, bool tir, bool ulti, bool grenade, bool BossSpawn, bool pause, bool volume) {
         player->updateFromJoystick(x, y, tir, ulti, grenade);
         this->bossSpawnRequested = BossSpawn;
+        if (pause && !m_isPaused) {
+            // On appelle le menu de pause 
+            this->onPauseMenuRequested();
+        }
+        SoundManager::instance()->setVolume(volume);
     });
+
 
     connect(player, &Player::grenadeCountChanged, hud, &HUD::updateGrenades);
 
@@ -930,7 +938,7 @@ void Game::toggleFullscreen()
     }
 }
 
-void Game::onPauseMenuRequested()
+/*void Game::onPauseMenuRequested()
 {
     if (timer) timer->stop();
     m_isPaused = true;
@@ -940,11 +948,41 @@ void Game::onPauseMenuRequested()
         m_pauseMenu->raise();
         m_pauseMenu->setFocus();
     }
+}*/
+void Game::onPauseMenuRequested()
+{
+    if (m_isPaused || m_upgradeMenuOpen) return; // Évite les doubles ouvertures
+
+    if (timer) timer->stop();
+    m_isPaused = true;
+
+    if (player) {
+        player->resetInputStates();
+        // 1. On déconnecte le joystick du vaisseau pour ne pas bouger en pause
+        disconnect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
+    }
+
+    if (m_pauseMenu) {
+        // 2. On connecte le joystick à la navigation du menu de pause
+        // Note: Assure-toi que Menu possède une fonction navigateWithJoystick comme ton UpgradeMenu
+        connect(arduino, &ArduinoManager::commandReceived, m_pauseMenu, &Menu::navigateWithJoystick, Qt::UniqueConnection);
+
+        m_pauseMenu->showPauseMenu(true);
+        m_pauseMenu->raise();
+        m_pauseMenu->setFocus();
+    }
 }
 
 void Game::onResumeGame()
 {
+    if (m_pauseMenu) {
+        // 1. On déconnecte le joystick du menu de pause
+        disconnect(arduino, &ArduinoManager::commandReceived, m_pauseMenu, &Menu::navigateWithJoystick);
+	}
     m_isPaused = false;
+    if (player) {
+        connect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
+    }
     if (timer) timer->start();
     setFocus();
 }
