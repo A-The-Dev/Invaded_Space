@@ -12,7 +12,6 @@
 #include "SoundManager.h"
 
 namespace AngleUtils {
-    // normalize difference to [-180,180)
     static qreal AngleDelta(qreal fromDeg, qreal toDeg) {
         qreal diff = toDeg - fromDeg;
         while (diff < -180.0) diff += 360.0;
@@ -25,7 +24,7 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
 {
     setRect(-30, -30, 60, 60);
 
-    sprite = QPixmap("./resources/spaceship.png"); // use your resource path
+    sprite = QPixmap("./resources/spaceship.png");
     if (sprite.isNull()) {
         qDebug() << "Failed to load spaceship.png";
     }
@@ -39,8 +38,8 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
     wPressed = aPressed = sPressed = dPressed = false;
     angle = 0;
     desiredAngle = 0;
-    rotationSpeedDefault = 8.0; // degrees per frame; lower = slower/smoother
-    aimRotationSpeed = 60.0;    // when aiming at target rotate much faster
+    rotationSpeedDefault = 8.0;
+    aimRotationSpeed = 60.0;
     rotationSpeedCurrent = rotationSpeedDefault;
     speed = 5.0;
     maxSpeed = 20.0;
@@ -53,7 +52,7 @@ Player::Player(QGraphicsItem *parent) : QGraphicsRectItem(parent)
     aimHoldFrames = 0;
     grenadeRefillTimer = new QTimer(this);
     connect(grenadeRefillTimer, &QTimer::timeout, this, &Player::refillGrenade);
-	grenadeRefillTimer->start(10000); // 10 seconds (10000 ms)
+	grenadeRefillTimer->start(10000);
     numberofgrenades = maxGrenades = 3;
  
 }
@@ -67,17 +66,14 @@ void Player::setEnemyLists(const QList<Enemy*> *enemiesList, const QList<Boss*> 
 void Player::keyPressEvent(QKeyEvent *event)
 {
     if (useJoystick){
-        //qDebug() << "BLOQUÉ !";
         return;
     }
-    //qDebug() << "CLAVIER ACTIF";
     if (event->key() == Qt::Key_W) wPressed = true;
     if (event->key() == Qt::Key_A) aPressed = true;
     if (event->key() == Qt::Key_S) sPressed = true;
     if (event->key() == Qt::Key_D) dPressed = true;
     if (event->key() == Qt::Key_F) fPressed = true;
 
-    // Toggle targeting mode on G press
     if (event->key() == Qt::Key_G) {
         toggleTargetMode();
         qDebug() << "Target mode toggled. targetByHP =" << isTargetByHP();
@@ -97,12 +93,10 @@ void Player::keyReleaseEvent(QKeyEvent *event)
 
 }
 
-// Mouse-based aiming disabled: always auto-aim now.
-// Keep the function a no-op so Game::mouseMoveEvent can remain unchanged
-void Player::updateRotation(QPointF /*mousePos*/)
+void Player::updateRotation(QPointF)
 {
-    // intentionally empty to prevent mouse from changing ship rotation
 }
+
 void Player::refillGrenade() 
 {
     if (numberofgrenades < maxGrenades) 
@@ -129,7 +123,6 @@ void Player::updateMovement()
     if (aPressed) inputX -= 1.0;
     if (dPressed) inputX += 1.0;
 
-    // Normalize input vector so diagonal movement isn't faster
     qreal len = qSqrt(inputX * inputX + inputY * inputY);
     qreal moveX = 0;
     qreal moveY = 0;
@@ -138,16 +131,13 @@ void Player::updateMovement()
         moveY = (inputY / len) * speed;
     }
 
-    // Add knockback (kept as-is)
     moveX += knockbackVelocity.x();
     moveY += knockbackVelocity.y();
 
-    // Friction on knockback
     knockbackVelocity *= 0.9;
 
     setPos(x() + moveX, y() + moveY);
 
-    // Determine desiredAngle:
     qreal moveLen2 = moveX*moveX + moveY*moveY;
     const qreal moveThreshold2 = 0.01;
 
@@ -170,7 +160,6 @@ void Player::updateMovement()
     while (angle >= 180.0) angle -= 360.0;
     setRotation(angle);
 
-    // Wrap
     QPointF currentPos = pos();
     qreal mapWidth = 2000;
     qreal mapHeight = 2000;
@@ -192,31 +181,26 @@ void Player::setGrenadeCount(int newgrenadecount)
 }
 void Player::takeDamage(int damage)
 {
-    // Only take damage if not invincible
     if (invincibilityFrames > 0)
         return;
 
     health -= damage;
     emit healthChanged(health, maxHealth);
 
-    // Play hurt sound
     SoundManager::instance()->playSound(SoundManager::PlayerHurt);
 
-    // Set invincibility frames (1/3 second at 60fps)
     invincibilityFrames = 20;
 
     if (health <= 0)
     {
         health = 0;
 
-        // Play death sound
         SoundManager::instance()->playSound(SoundManager::PlayerDeath);
 
         emit died();
     }
     else
     {
-        // Flash red when damaged
         setBrush(Qt::red);
         QTimer::singleShot(100, this, [this]() {
             setBrush(Qt::white);
@@ -230,7 +214,6 @@ void Player::updateInvincibility()
     {
         invincibilityFrames--;
 
-        // Flash white/transparent during invincibility
         if (invincibilityFrames % 10 < 5)
             setOpacity(0.5);
         else
@@ -254,7 +237,6 @@ bool Player::tryUseUltimate()
         ultimateCharge = 0;
         isUltimateReady = false;
         
-        // Play ultimate sound
         SoundManager::instance()->playSound(SoundManager::PlayerUltimate);
         
         return true;
@@ -264,7 +246,6 @@ bool Player::tryUseUltimate()
 
 void Player::pushBack(QPointF direction, qreal force)
 {
-    // Normalize direction and apply force
     qreal length = qSqrt(direction.x() * direction.x() + direction.y() * direction.y());
     if (length > 0)
     {
@@ -288,7 +269,7 @@ void Player::refillHealth() {
 
 void Player::increaseMaxHealth(int amount) {
     maxHealth += amount;
-    health += amount; // On donne aussi un petit bonus de vie actuelle
+    health += amount;
     emit healthChanged(health, maxHealth);
 }
 
@@ -298,33 +279,27 @@ void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
     Q_UNUSED(widget);
 
     if (sprite.isNull()) {
-        // Fallback if sprite failed to load
         painter->setPen(QPen(QColor(200, 200, 255), 2));
         painter->setBrush(Qt::NoBrush);
         painter->drawRect(rect());
         return;
     }
 
-    // If no color is set or color is invalid, just draw the sprite normally
     if (!shipColor.isValid() || shipColor.alpha() == 0)
     {
         painter->drawPixmap(rect().topLeft(), sprite);
         return;
     }
 
-    // Create a colored version of the sprite that preserves transparency
     QPixmap coloredSprite(sprite.size());
     coloredSprite.fill(Qt::transparent);
 
     QPainter spritePainter(&coloredSprite);
-    
-    // Draw original sprite
+
     spritePainter.drawPixmap(0, 0, sprite);
-    
-    // Apply color tint
+
     spritePainter.setCompositionMode(QPainter::CompositionMode_SourceAtop);
-    
-    // Reduce the alpha of the color mask
+
     QColor reducedColor = shipColor;
     reducedColor.setAlpha(static_cast<int>(shipColor.alpha() * 0.8));
     
@@ -332,7 +307,6 @@ void Player::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
     
     spritePainter.end();
 
-    // Draw the colored sprite
     painter->drawPixmap(rect().topLeft(), coloredSprite);
 }
 
@@ -425,7 +399,6 @@ void Player::shoot() {
 
     emit bulletFired(bullet);
     
-    // Play shoot sound
     SoundManager::instance()->playSound(SoundManager::PlayerShoot);
 
     lastShotTimer.restart();
@@ -513,17 +486,13 @@ void Player::throwGrenade()
     emit grenadeCountChanged(numberofgrenades);
     grenadeShotTimer.restart();
 
-    // Play grenade throw sound
     SoundManager::instance()->playSound(SoundManager::GrenadeThrow);
 }
 void Player::launchUltimate() {
-    //qDebug() << "Tentative d'apparition de l'ultime...";
-
     QPointF spawnPos = this->scenePos();
 
     Ultimate* myUltimate = new Ultimate(spawnPos, this->rotation(), true, this, nullptr, false);
 
-    // Vérifier la scène 
     QGraphicsScene* currentScene = this->scene();
     if (currentScene) {
         currentScene->addItem(myUltimate);
@@ -539,7 +508,6 @@ void Player::launchUltimate() {
 
 void Player::processMovement()
 {
-    // Mouvement basé sur les dernières valeurs reçues
     if (qAbs(joyX) > 0.1 || qAbs(joyY) > 0.1) {
         this->setPos(x() + (joyX * this->speed), y() + (joyY * this->speed));
 
@@ -547,7 +515,6 @@ void Player::processMovement()
         this->setRotation(targetAngle);
     }
 
-    // Tir 
     if (isFiring) {
         if (lastShotTimer.elapsed() > 100) {
             this->shoot();
@@ -558,8 +525,7 @@ void Player::processMovement()
     if (isUltiPressed && isUltimateReady) {
         this->isUltimateReady = false;
         emit requestUltimate();
-        //this->launchUltimate();
-    }
+        }
     if (isGrenadePressed) {
         this->throwGrenade();
 	}
@@ -572,7 +538,6 @@ void Player::removeActiveGrenade(int index)
     }
 }
 
-// resetInputStates implementation
 void Player::resetInputStates()
 {
     wPressed = aPressed = sPressed = dPressed = fPressed = false;
@@ -584,7 +549,6 @@ void Player::resetInputStates()
 
 void Player::resetToDefault()
 {
-    // Reset stats
     health = maxHealth = 20;
     speed = 5.0;
     invincibilityFrames = 0;
@@ -592,8 +556,7 @@ void Player::resetToDefault()
     ultimateCharge = 0.0f;
     isUltimateReady = false;
     attackDamage = 1;
-    
-    // Reset grenades
+
     numberofgrenades = 3;
     for (Grenades* g : activeGrenades) {
         if (g->scene()) scene()->removeItem(g);

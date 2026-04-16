@@ -16,13 +16,11 @@ class Leaderboard : public QWidget {
 public:
     explicit Leaderboard(QWidget* parent = nullptr);
 
-    // Navigation API used by Menu keyboard handling
     void selectNext();
     void selectPrevious();
     void activateSelected();
-    void refresh(); // reload entries
+    void refresh();
 
-    // Endgame mode: show restart/quit buttons below leaderboard
     void setEndgameMode(bool endgame);
     bool isEndgameMode() const { return m_isEndgameMode; }
 
@@ -45,7 +43,7 @@ private:
     QVBoxLayout* m_listLayout;
     int m_selectedIndex;
     
-    // Endgame mode widgets
+    // Endgame widgets
     QWidget* m_buttonContainer;
     QVBoxLayout* m_buttonLayout;
     QPushButton* m_restartButton;

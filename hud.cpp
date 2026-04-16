@@ -83,7 +83,6 @@ HUD::HUD(QGraphicsScene *scene, QObject *parent) : QObject(parent), scene(scene)
 
 void HUD::createGrenadeSlots()
 {
-    // Clean up existing grenades if recreating
     for (QGraphicsRectItem* segment : grenadeSegments) {
         scene->removeItem(segment);
         delete segment;
@@ -103,7 +102,6 @@ void HUD::createGrenadeSlots()
     
     for (int i = 0; i < maxGrenades; ++i) 
     {
-        // Background slot
         QGraphicsRectItem* segment = new QGraphicsRectItem();
         segment->setRect(0, 0, fillWidth, slotHeight); 
         segment->setBrush(QBrush(QColor(100, 82, 0))); 
@@ -111,8 +109,7 @@ void HUD::createGrenadeSlots()
         segment->setZValue(2005);
         scene->addItem(segment);
         grenadeSegments.append(segment);
-        
-        // Fill overlay
+
         QGraphicsRectItem* fill = new QGraphicsRectItem();
         fill->setRect(0, 0, fillWidth, slotHeight);
         fill->setBrush(QBrush(QColor(255, 165, 0)));
@@ -120,8 +117,7 @@ void HUD::createGrenadeSlots()
         fill->setZValue(2006);
         scene->addItem(fill);
         grenadeFills.append(fill);
-        
-        // Track individual fill progress
+
         grenadeFillProgress.append(1.0f);
     }
 }
@@ -142,17 +138,13 @@ void HUD::setMaxGrenades(int maxGrenadeCount)
 
 void HUD::updatePosition(QPointF cameraPos, QPointF playerPos)
 {
-    // 1. Setup constants for spacing
     qreal barWidth = 60;
     qreal barHeight = 6;
-    qreal spacing = 4; // Space between elements
+    qreal spacing = 4;
     qreal centerX = playerPos.x();
-
-    // 2. Define Y-coordinates (Stacked from bottom to top)
-    // We stack them upwards starting from above the player's head
     qreal currentY = playerPos.y() - 60;
 
-    // XP Bar (Bottom of the stack)
+    // XP Bar
     playerXPBackground->setPos(centerX - barWidth / 2, currentY + barHeight - 2);
     playerXPFill->setPos(centerX - barWidth / 2, currentY + barHeight - 2);
     currentY -= (barHeight - 5);
@@ -175,11 +167,9 @@ void HUD::updatePosition(QPointF cameraPos, QPointF playerPos)
             grenadeSegments[i]->setPos(grenadeStartX + (i * slotWidth), currentY);
             grenadeFills[i]->setPos(grenadeStartX + (i * slotWidth), currentY);
         }
-        currentY -= (12 + spacing); // Move up for text
+        currentY -= (12 + spacing);
     }
 
-    // 3. Text Placement (Placed at the very top to avoid overlap)
-    // Center the Health and Level text side-by-side
     qreal healthW = healthText->boundingRect().width();
     qreal levelW = levelText->boundingRect().width();
     qreal totalTextW = healthW + levelW + 10;
@@ -187,7 +177,6 @@ void HUD::updatePosition(QPointF cameraPos, QPointF playerPos)
     healthText->setPos(centerX - totalTextW / 2, currentY);
     levelText->setPos(centerX - totalTextW / 2 + healthW + 10, currentY);
 
-    // Hide the level background if not used
     levelBackground->setVisible(false);
 }
 
@@ -202,7 +191,6 @@ void HUD::updateGrenades(int count)
     {
         if (i < count) 
         {
-            // Fully charged grenades
             grenadeSegments[i]->setVisible(true);
             grenadeFills[i]->setOpacity(1.0);
             grenadeFills[i]->setRect(0, 0, grenadeSegments[i]->rect().width(), grenadeSegments[i]->rect().height());
@@ -210,7 +198,6 @@ void HUD::updateGrenades(int count)
         }
         else if (i == count)
         {
-            // Current regenerating grenade - reset its progress
             grenadeSegments[i]->setVisible(true);
             grenadeFillProgress[i] = 0.0f;
             regeneratingGrenadeIndex = i;
@@ -218,7 +205,6 @@ void HUD::updateGrenades(int count)
         }
         else
         {
-            // Empty grenades (not yet regenerating)
             grenadeSegments[i]->setVisible(true);
             grenadeFills[i]->setOpacity(0.4);
             grenadeFills[i]->setRect(0, 0, 0, grenadeSegments[i]->rect().height());
@@ -320,17 +306,15 @@ void HUD::onGrenadeAnimationTick()
     grenadeRegenProgress += increment;
     if (grenadeRegenProgress >= 1.0f) {
         grenadeRegenProgress = 1.0f;
-        // Fill the current grenade completely
+
         grenadeFills[regeneratingGrenadeIndex]->setRect(0, 0, fillWidth, slotHeight);
         grenadeFills[regeneratingGrenadeIndex]->setOpacity(1.0);
         grenadeFillProgress[regeneratingGrenadeIndex] = 1.0f;
         
-        // Move to the next grenade if available
         if (regeneratingGrenadeIndex + 1 < maxGrenades) {
             regeneratingGrenadeIndex++;
             grenadeRegenProgress = 0.0f;
         } else {
-            // All grenades fully charged
             regeneratingGrenadeIndex = -1;
         }
         return;

@@ -7,17 +7,14 @@
 Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer, BossType type, bool fromBoss,  QGraphicsItem *parent)
     : QGraphicsEllipseItem(parent), fromPlayer(fromPlayer)
 {
-    // Create a perfect circle
     qreal radius = 4;
     this->type = type;
     setDamage(1);
 
-    // Create glowing bullet effect with radial gradient centered at (0, 0)
     QLinearGradient linearGrad(QPointF(100, 100), QPointF(200, 200));
 
     if (fromPlayer)
     {
-        // Player bullets: Yellow/Orange/Red
         setRect(-radius, -radius, radius * 2, radius * 2);
         setPen(QPen(QColor(255, 200, 0), 1));
         this->angle = angle;
@@ -103,7 +100,6 @@ Bullet::Bullet(QPointF startPos, qreal angle, bool fromPlayer, BossType type, bo
     }
     else
     {
-        // Enemy bullets: Purple/Magenta
         setRect(-radius, -radius, radius * 2, radius * 2);
         setPen(QPen(QColor(200, 100, 200), 1));
         this->angle = angle;
@@ -123,7 +119,6 @@ void Bullet::move()
 
     setPos(x() + dx, y() + dy);
 
-    // Wrap around map edges
     QPointF currentPos = pos();
     qreal mapWidth = 2000;
     qreal mapHeight = 2000;
@@ -156,7 +151,6 @@ void Bullet::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
 
     if (this->type == Boss2)
     {
-        //Si boss 2
         QPainterPath path;
         path.addEllipse(rect());
         painter->setClipPath(path);
@@ -164,7 +158,6 @@ void Bullet::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
         if (!sprite.isNull()) {
             painter->drawPixmap(rect().toRect(), sprite);
         } else {
-            // Si image ne load pas bien
             painter->setBrush(Qt::red);
             painter->setPen(QPen(Qt::white, 3));
             painter->drawEllipse(rect());
@@ -172,7 +165,6 @@ void Bullet::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QW
     }
     else
     {
-        //fait les bullet normal
         painter->setPen(this->pen());
         painter->setBrush(this->brush());
 

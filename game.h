@@ -27,13 +27,9 @@ class Game : public QGraphicsView
 {
     Q_OBJECT
 public:
-    // If startPaused is true the game loop / spawns won't start until startGame() is called.
     explicit Game(QWidget *parent = nullptr, bool startPaused = false);
-
-    // Start the game loop and initial spawns (call when menu Start pressed).
     void startGame();
     
-    // Access to player for customization
     Player* getPlayer() { return player; }
 
 protected:

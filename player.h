@@ -60,17 +60,15 @@ public:
     qreal getSpeed() const { return speed; }
     void setSpeed(qreal s);
 
-    // Toggle target selection mode (nearest vs most HP)
     void toggleTargetMode() { targetByHP = !targetByHP; }
     bool isTargetByHP() const { return targetByHP; }
 
-    // Provide access to game enemy lists so player can target reliably
     void setEnemyLists(const QList<Enemy*> *enemiesList, const QList<Boss*> *bossesList);
     int getGrenadeCount() { return numberofgrenades; }
     void setGrenadeCount(int newgrenadecount);
     int getMaxGrenades() const { return maxGrenades; }
 
-    // Reset movement/input state (call when focus lost / modal shown)
+    // Reset movement/input state
     void resetInputStates();
     void setUseJoystick(bool state) { useJoystick = state; }
     void launchUltimate();
@@ -95,11 +93,11 @@ signals:
 private:
     QPixmap sprite;
     bool wPressed, aPressed, sPressed, dPressed, fPressed;
-    qreal angle;             // current rotation in degrees
-    qreal desiredAngle;      // target rotation in degrees
-    qreal rotationSpeedCurrent; // current degrees-per-frame rotation speed
-    qreal rotationSpeedDefault; // default smoothing speed
-    qreal aimRotationSpeed;     // faster rotation when aiming at a target
+    qreal angle;
+    qreal desiredAngle;
+    qreal rotationSpeedCurrent;
+    qreal rotationSpeedDefault;
+    qreal aimRotationSpeed;
     QTimer* grenadeRefillTimer;
     int maxGrenades = 5;
 	string playerName;
@@ -117,15 +115,15 @@ private:
     QElapsedTimer lastShotTimer;
     int msBetweenShots = 150;
     int numberofgrenades;
-    // New: toggle between nearest target and highest-HP target
     bool targetByHP = false;
+
     QList<Grenades*> activeGrenades;
-    // Pointers to the Game lists (not owned)
+
     const QList<Enemy*> *gameEnemies = nullptr;
     const QList<Boss*>  *gameBosses  = nullptr;
     QElapsedTimer grenadeShotTimer;
     int msBetweenGrenades = 800;
-    // Hold rotation toward target for a short time after shooting so movement doesn't immediately override it
+
     int aimHoldFrames = 0;
     double joyX = 0;
     double joyY = 0;
@@ -133,7 +131,6 @@ private:
     bool isUltiPressed = false;
     bool isGrenadePressed = false;
 
-    // Color overlay for ship customization
     QColor shipColor;
 
 protected:

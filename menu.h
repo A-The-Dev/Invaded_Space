@@ -23,7 +23,7 @@ public:
     explicit Menu(QWidget *parent = nullptr);
     ~Menu() override;
 
-    // Shows the pause menu overlay
+    // Pause menu overlay
     void showPauseMenu(bool show);
     bool isPauseMenuVisible() const;
 
@@ -91,14 +91,14 @@ private:
     QPushButton *m_pauseOptionsButton;
     QPushButton *m_pauseQuitButton;
 
-    // Options controls (shared between main and pause)
+    // Options controls
     QSlider *m_volumeSlider;
     QLabel *m_volumePercentLabel;
     QCheckBox *m_fullscreenCheck;
     QPushButton *m_optionsBackButton;
     QWidget* m_volumeContainer;
 
-    // Pause options controls (separate from main options)
+    // Pause options controls
     QSlider *m_pauseVolumeSlider;
     QLabel *m_pauseVolumePercentLabel;
     QCheckBox *m_pauseFullscreenCheck;
@@ -106,15 +106,15 @@ private:
     QWidget* m_pauseVolumeContainer;
 
     // Navigation / selector
-    QLabel *m_selectorLabel;                 // ship icon or marker
-    QVector<QWidget*> m_mainItems;           // orderable focusable widgets (main)
-    QVector<QWidget*> m_optionsItems;        // orderable focusable widgets (options)
-    QVector<QWidget*> m_pauseItems;          // orderable focusable widgets (pause)
-    QVector<QWidget*> m_pauseOptionsItems;   // orderable focusable widgets (pause options)
+    QLabel *m_selectorLabel;
+    QVector<QWidget*> m_mainItems;
+    QVector<QWidget*> m_optionsItems;
+    QVector<QWidget*> m_pauseItems;
+    QVector<QWidget*> m_pauseOptionsItems;
     int m_selectedIndex;
 
     Leaderboard *m_leaderboard;
-    QWidget *m_modalBackdrop; // darkened backdrop when leaderboard visible
+    QWidget *m_modalBackdrop;
 
     // Animation
     QPropertyAnimation *m_titleGlowAnimation;

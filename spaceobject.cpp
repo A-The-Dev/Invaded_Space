@@ -9,7 +9,7 @@ SpaceObject::SpaceObject(ObjectType type, QGraphicsItem *parent)
     setZValue(-1);
     initializeObject();
 
-    // Enable collision detection for planets and asteroids
+    // Enable collision detection
     if (objType == Planet || objType == Asteroid)
     {
         setFlag(QGraphicsItem::ItemIsMovable, false);
@@ -20,11 +20,10 @@ void SpaceObject::initializeObject()
 {
     QRandomGenerator *rng = QRandomGenerator::global();
 
-    // Random velocity (slow drift)
     velocityX = (rng->bounded(100) - 50) / 100.0 * 0.6;  // Range: -0.3 to 0.3
     velocityY = (rng->bounded(100) - 50) / 100.0 * 0.6;  // Range: -0.3 to 0.3
 
-    // Lifetime in frames (30-90 seconds at 60fps)
+    // Lifetime
     maxLifetime = rng->bounded(1800, 5400);
     lifetime = maxLifetime;
 
@@ -53,7 +52,6 @@ void SpaceObject::initializeObject()
         size = rng->bounded(10, 30);
         color = QColor(70, 70, 80, 180);
 
-        // Generate irregular polygon
         int sides = rng->bounded(5, 8);
         for (int i = 0; i < sides; ++i)
         {
@@ -87,7 +85,6 @@ QPainterPath SpaceObject::shape() const
     }
     else
     {
-        // Stars don't have collision
         path.addEllipse(QPointF(0, 0), 0, 0);
     }
 
@@ -99,7 +96,6 @@ void SpaceObject::paint(QPainter *painter, const QStyleOptionGraphicsItem *optio
     Q_UNUSED(option);
     Q_UNUSED(widget);
 
-    // Calculate fade based on lifetime
     qreal fadeRatio = lifetime / maxLifetime;
     QColor fadedColor = color;
     fadedColor.setAlpha(color.alpha() * fadeRatio);
@@ -128,10 +124,8 @@ void SpaceObject::paint(QPainter *painter, const QStyleOptionGraphicsItem *optio
 
 void SpaceObject::update()
 {
-    // Move object
     setPos(x() + velocityX, y() + velocityY);
 
-    // Wrap around map edges
     qreal halfWidth = 1000;
     qreal halfHeight = 1000;
 
@@ -145,7 +139,6 @@ void SpaceObject::update()
     else if (y() < -halfHeight)
         setPos(x(), halfHeight);
 
-    // Decrease lifetime
     lifetime -= 1;
     setProperty("lifetime", lifetime);
 

@@ -13,7 +13,7 @@ PlayerCustomizationDialog::PlayerCustomizationDialog(QWidget *parent)
       m_colorButton(nullptr),
       m_startButton(nullptr),
       m_colorPreview(nullptr),
-      m_selectedColor(255, 100, 100, 180) // Default: semi-transparent red
+      m_selectedColor(255, 100, 100, 180) // semi-transparent red
 {
     setWindowFlags(Qt::FramelessWindowHint);
     setAttribute(Qt::WA_StyledBackground);
@@ -112,7 +112,6 @@ void PlayerCustomizationDialog::setupUI()
     connect(m_startButton, &QPushButton::clicked, this, &PlayerCustomizationDialog::onStartClicked);
     mainLayout->addWidget(m_startButton);
 
-    // Set dialog background
     setStyleSheet("PlayerCustomizationDialog { background: rgba(10, 10, 30, 240); border-radius: 10px; }");
 }
 
@@ -120,13 +119,11 @@ void PlayerCustomizationDialog::updateColorPreview()
 {
     if (!m_colorPreview) return;
     
-    // Create a checkerboard pattern background to show transparency
     QPixmap preview(100, 40);
     preview.fill(Qt::transparent);
     
     QPainter painter(&preview);
     
-    // Draw checkerboard background
     int squareSize = 10;
     for (int y = 0; y < 40; y += squareSize)
     {
@@ -137,11 +134,9 @@ void PlayerCustomizationDialog::updateColorPreview()
                            isEven ? QColor(80, 80, 80) : QColor(120, 120, 120));
         }
     }
-    
-    // Draw the color with transparency
+
     painter.fillRect(0, 0, 100, 40, m_selectedColor);
     
-    // Draw border
     painter.setPen(QPen(Qt::white, 2));
     painter.drawRect(0, 0, 99, 39);
     
@@ -149,7 +144,7 @@ void PlayerCustomizationDialog::updateColorPreview()
     
     m_colorPreview->setPixmap(preview);
     
-    // Update tooltip with color info
+    // Update tooltip
     QString colorInfo = QString("RGB(%1, %2, %3) Alpha: %4\nHex: #%5")
         .arg(m_selectedColor.red())
         .arg(m_selectedColor.green())
@@ -166,19 +161,16 @@ void PlayerCustomizationDialog::updateColorPreview()
 
 void PlayerCustomizationDialog::onColorButtonClicked()
 {
-    // Create color dialog without parent to avoid geometry warnings
     QColorDialog colorDialog(m_selectedColor);
     colorDialog.setOption(QColorDialog::ShowAlphaChannel, true);
     colorDialog.setWindowTitle("Choose Ship Color");
     
-    // Make it modal to the application
     colorDialog.setWindowModality(Qt::ApplicationModal);
     
     if (colorDialog.exec() == QDialog::Accepted)
     {
         m_selectedColor = colorDialog.currentColor();
-        
-        // Ensure some transparency (alpha between 100-220)
+
         int alpha = m_selectedColor.alpha();
         if (alpha > 220) alpha = 220;
         if (alpha < 100) alpha = 180;

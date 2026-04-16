@@ -23,7 +23,7 @@ void JsonParser::savePlayerResult(Player* player, int level, int score)
     newEntry["atk"] = player->getAttackDamage();
     newEntry["score"] = score;
     
-    // Save the player's ship color as hex (RRGGBBAA format)
+    // Save the player's ship color as hex
     QColor shipColor = player->getShipColor();
     QString colorHex = QString("#%1%2%3%4")
         .arg(shipColor.red(), 2, 16, QChar('0'))

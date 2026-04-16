@@ -80,7 +80,6 @@ Menu::Menu(QWidget *parent)
 
     loadPixelFontIfAvailable();
 
-    // selector label (ship icon)
     m_selectorLabel = new QLabel(m_overlayWidget);
     m_selectorLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
 
@@ -189,7 +188,6 @@ void Menu::setupUI()
     m_titleLabel->setStyleSheet("QLabel { color: white; }");
     mainLayout->addWidget(m_titleLabel, 0, Qt::AlignHCenter);
 
-    // Setup title animation
     setupTitleAnimation();
 
     QWidget *btnBox = new QWidget(m_mainMenuWidget);
@@ -410,8 +408,6 @@ void Menu::setupPauseMenuUI()
     connect(m_pauseVolumeSlider, &QSlider::valueChanged, this, &Menu::onVolumeChanged);
     connect(m_pauseFullscreenCheck, &QCheckBox::toggled, this, &Menu::onFullscreenChanged);
     
-    // Initialize sliders with current SoundManager volume (80% default)
-    // Block signals to prevent triggering onVolumeChanged during initialization
     m_volumeSlider->blockSignals(true);
     m_pauseVolumeSlider->blockSignals(true);
     m_volumeSlider->setValue(80);
@@ -751,7 +747,6 @@ void Menu::onVolumeChanged(int value)
     if (m_pauseVolumePercentLabel)
         m_pauseVolumePercentLabel->setText(QString("%1%").arg(value));
     
-    // Update sound manager volume
     SoundManager::instance()->setVolume(value);
     
     emit volumeChanged(value);
@@ -897,7 +892,6 @@ void Menu::updateSelectorPosition()
         return;
     }
 
-    // Ensure layout geometry is up to date
     w->updateGeometry();
     m_overlayWidget->updateGeometry();
 
@@ -909,7 +903,6 @@ void Menu::updateSelectorPosition()
     m_selectorLabel->raise();
     m_selectorLabel->show();
 
-    // Visual highlight for buttons - now includes hover effect
     QString baseBtn =
         "QPushButton { color: white; background: rgba(30,30,50,200); border-radius:6px; padding: 10px; font-weight: bold; }"
         "QPushButton:hover { background: rgba(60,60,90,220); }";

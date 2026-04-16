@@ -99,48 +99,43 @@ void Boss::updateMovement(QPointF playerPos)
             dy = (dy / distance) * getSpeed();
             setPos(currentPos.x() + dx, currentPos.y() + dy);
 
-            // Rotate to face player
             setAngle( qAtan2(dy, dx) * 90 / M_PI);
             setRotation(getAngle());
         }
         setUltimateTimer(getUltimateTimer()+1);
         if (ultimateTimer >= 300) {
             emit UseUltimate(this->pos(), this->rotation(), true);
-            ultimateTimer = 0; // Reset the timer
+            ultimateTimer = 0;
         }
         break;
     }
 
     case Boss2:
     {
-        // Keep distance from player (kiting behavior)
+        // Keep distance from player
         qreal dx = playerPos.x() - currentPos.x();
         qreal dy = playerPos.y() - currentPos.y();
         qreal distance = qSqrt(dx * dx + dy * dy);
 
-        // Try to maintain distance of 150 units
         qreal targetDistance = 150;
         if (distance < targetDistance)
         {
-            // Move away
             dx = -(dx / distance) * getSpeed();
             dy = -(dy / distance) * getSpeed();
             setPos(currentPos.x() + dx, currentPos.y() + dy);
         }
         else if (distance > targetDistance + 100)
         {
-            // Move closer
             dx = (dx / distance) * getSpeed();
             dy = (dy / distance) * getSpeed();
             setPos(currentPos.x() + dx, currentPos.y() + dy);
         }
 
-        // Always face player
         setAngle(qAtan2(playerPos.y() - currentPos.y(), playerPos.x() - currentPos.x()) * 180 / M_PI);
         setRotation(getAngle());
 
         setShootTimer(getShootTimer()+1);
-        if (getShootTimer() >= 30)  // Shoot every 0.5 seconds
+        if (getShootTimer() >= 30)
         {
             setShootTimer(0);
             emit shootBullet(currentPos, getAngle(), true);
@@ -148,41 +143,36 @@ void Boss::updateMovement(QPointF playerPos)
         setUltimateTimer(getUltimateTimer()+1);
         if (ultimateTimer >= 300) {
             emit UseUltimate(this->pos(), this->rotation(), true);
-            ultimateTimer = 0; // Reset the timer
+            ultimateTimer = 0;
         }
         break;
     }
     case Boss4:
     {
-        // Keep distance from player (kiting behavior)
+        // Keep distance from player
         qreal dx = playerPos.x() - currentPos.x();
         qreal dy = playerPos.y() - currentPos.y();
         qreal distance = qSqrt(dx * dx + dy * dy);
 
-        // Try to maintain distance of 300 units
         qreal targetDistance = 300;
         if (distance < targetDistance)
         {
-            // Move away
             dx = -(dx / distance) * getSpeed();
             dy = -(dy / distance) * getSpeed();
             setPos(currentPos.x() + dx, currentPos.y() + dy);
         }
         else if (distance > targetDistance + 100)
         {
-            // Move closer
             dx = (dx / distance) * getSpeed();
             dy = (dy / distance) * getSpeed();
             setPos(currentPos.x() + dx, currentPos.y() + dy);
         }
 
-        // Always face player
         setAngle(qAtan2(playerPos.y() - currentPos.y(), playerPos.x() - currentPos.x()) * 180 / M_PI);
         setRotation(getAngle());
 
-        // Shoot periodically
         setShootTimer(getShootTimer()+1);
-        if (getShootTimer() >= 120)  // Shoot every 2 seconds
+        if (getShootTimer() >= 120)
         {
             setShootTimer(0);
             emit shootBullet(currentPos, getAngle(), true);
@@ -190,7 +180,7 @@ void Boss::updateMovement(QPointF playerPos)
         setUltimateTimer(getUltimateTimer()+1);
         if (ultimateTimer >= 300) {
             emit UseUltimate(this->pos(), this->rotation(), true);
-            ultimateTimer = 0; // Reset the timer
+            ultimateTimer = 0;
         }
         break;
 
@@ -198,7 +188,6 @@ void Boss::updateMovement(QPointF playerPos)
     }
     }
 
-    // Wrap around map edges
     if (currentPos.x() > 1000)
         setPos(-1000, currentPos.y());
     else if (currentPos.x() < -1000)
@@ -214,7 +203,6 @@ void Boss::takeDamage(int damage)
 {
     setHealth(getHealth()-damage);
 
-    // Visual feedback - flash white
     if (getHealth() > 0)
     {
         setBrush(Qt::white);

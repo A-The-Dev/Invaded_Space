@@ -20,13 +20,11 @@ int main(int argc, char* argv[])
     QObject::connect(menu, &Menu::startGameRequested, game, [menu, game]() {
         if (!game) return;
         
-        // Hide the menu temporarily
         menu->hide();
         
-        // Create customization dialog as overlay widget
+        // Create customization dialog
         PlayerCustomizationDialog* customDialog = new PlayerCustomizationDialog(game);
-        
-        // Center the customization form
+
         int dialogWidth = 500;
         int dialogHeight = 400;
         int x = (game->width() - dialogWidth) / 2;
@@ -37,11 +35,9 @@ int main(int argc, char* argv[])
         customDialog->raise();
         customDialog->setFocus();
         
-        // Connect completion signal
         QObject::connect(customDialog, &PlayerCustomizationDialog::customizationComplete, 
             game, [game, customDialog](const QString &name, const QColor &color) {
             
-            // Apply player customization
             if (game->getPlayer()) {
                 game->getPlayer()->setPlayerName(name.toStdString());
                 game->getPlayer()->setShipColor(color);
@@ -50,14 +46,11 @@ int main(int argc, char* argv[])
             // Start the game
             game->startGame();
             game->setFocus();
-            
-            // Clean up the dialog
+
             customDialog->deleteLater();
         });
         
-        // Handle if user somehow closes without completing
         QObject::connect(customDialog, &QObject::destroyed, game, [menu, game]() {
-            // If game hasn't started yet, show menu again
             if (game && !game->property("gameStarted").toBool()) {
                 if (menu) {
                     menu->show();
@@ -67,7 +60,7 @@ int main(int argc, char* argv[])
         });
     });
 
-    // Apply fullscreen on the Game, then reposition the menu overlay after the window has resized.
+    // Apply fullscreen on the Game
     QObject::connect(menu, &Menu::fullscreenToggled, [game, menu](bool fullscreen) {
         if (!game || !menu) return;
 

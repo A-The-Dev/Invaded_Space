@@ -195,7 +195,6 @@ void UpgradeMenu::showEvent(QShowEvent* event)
 {
     QDialog::showEvent(event);
     
-    // Play upgrade menu appear sound
     SoundManager::instance()->playSound(SoundManager::UpgradeMenuAppear);
     
     if (m_entranceAnimation) {

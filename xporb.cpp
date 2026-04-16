@@ -5,12 +5,10 @@
 
 static qreal computeSizeForXP(int xp)
 {
-    // base orbs small (8). Combined orbs grow slowly but stay modest.
     if (xp <= 20)
         return 8.0;
 
     qreal base = 8.0;
-    // use smaller multiplier so combined orbs are not huge
     qreal size = base + qLn(static_cast<qreal>(xp) + 1.0) * 3.0;
     return qBound(8.0, size, 36.0);
 }

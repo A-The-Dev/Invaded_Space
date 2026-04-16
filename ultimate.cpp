@@ -46,7 +46,6 @@ void Ultimate::move()
 
     setPos(x() + dx, y() + dy);
 
-    // Only wrap/delete if it's not the Boss 4 Laser (which is static)
     if (speed > 0) {
         QPointF currentPos = pos();
         if (qAbs(currentPos.x()) > 1500 || qAbs(currentPos.y()) > 1500) {

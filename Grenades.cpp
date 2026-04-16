@@ -21,7 +21,7 @@ void Grenades::move()
     if (isExploding) {
         explosionTimer++;
 
-        // Expand the explosion radius visually
+        // Expand the explosion radius
         qreal grow = 4.0;
         setRect(rect().adjusted(-grow, -grow, grow, grow));
 
@@ -44,8 +44,7 @@ void Grenades::move()
         isExploding = true;
         speed = 0;
         sprite = QPixmap("./resources/grenadeExplosion.png");
-        
-        // Play explosion sound when grenade starts exploding
+
         SoundManager::instance()->playSound(SoundManager::GrenadeExplosion);
     }
 }

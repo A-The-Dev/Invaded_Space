@@ -51,11 +51,11 @@ private:
     int regeneratingGrenadeIndex = -1;
     float grenadeRegenProgress = 0.0f;
     
-    // Ultimat
+    // Ultimate
     QGraphicsRectItem* ultimateBar;
     QGraphicsRectItem* ultimateBackground;
 
-    // Pulse animation timer for ultimate full effect
+    // Animation timer for ultimate
     QTimer* ultimatePulseTimer;
     bool ultimatePulseGrowing = false;
     

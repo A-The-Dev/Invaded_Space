@@ -72,7 +72,6 @@ void Enemy::updateMovement(QPointF playerPos)
             dy = (dy / distance) * speed;
             setPos(currentPos.x() + dx, currentPos.y() + dy);
 
-            // Rotate to face player
             angle = qAtan2(dy, dx) * 180 / M_PI;
             setRotation(angle);
         }
@@ -83,7 +82,7 @@ void Enemy::updateMovement(QPointF playerPos)
     {
         // Pick new random target periodically
         wanderTimer++;
-        if (wanderTimer >= 180)  // Every 3 seconds
+        if (wanderTimer >= 90)
         {
             QRandomGenerator *rng = QRandomGenerator::global();
             targetPos = QPointF(
@@ -93,7 +92,6 @@ void Enemy::updateMovement(QPointF playerPos)
             wanderTimer = 0;
         }
 
-        // Move toward target
         qreal dx = targetPos.x() - currentPos.x();
         qreal dy = targetPos.y() - currentPos.y();
         qreal distance = qSqrt(dx * dx + dy * dy);
@@ -112,7 +110,6 @@ void Enemy::updateMovement(QPointF playerPos)
 
     case Stationary:
     {
-        // Rotate to face player
         qreal dx = playerPos.x() - currentPos.x();
         qreal dy = playerPos.y() - currentPos.y();
         angle = qAtan2(dy, dx) * 180 / M_PI;
@@ -122,35 +119,30 @@ void Enemy::updateMovement(QPointF playerPos)
 
     case Shooter:
     {
-        // Keep distance from player (kiting behavior)
+        // Keep distance from player
         qreal dx = playerPos.x() - currentPos.x();
         qreal dy = playerPos.y() - currentPos.y();
         qreal distance = qSqrt(dx * dx + dy * dy);
 
-        // Try to maintain distance of 300 units
         qreal targetDistance = 300;
         if (distance < targetDistance)
         {
-            // Move away
             dx = -(dx / distance) * speed;
             dy = -(dy / distance) * speed;
             setPos(currentPos.x() + dx, currentPos.y() + dy);
         }
         else if (distance > targetDistance + 100)
         {
-            // Move closer
             dx = (dx / distance) * speed;
             dy = (dy / distance) * speed;
             setPos(currentPos.x() + dx, currentPos.y() + dy);
         }
 
-        // Always face player
         angle = qAtan2(playerPos.y() - currentPos.y(), playerPos.x() - currentPos.x()) * 180 / M_PI;
         setRotation(angle);
 
-        // Shoot periodically
         shootTimer++;
-        if (shootTimer >= 120)  // Shoot every 2 seconds
+        if (shootTimer >= 120)
         {
             shootTimer = 0;
             emit shootBullet(currentPos, angle, false);
@@ -164,7 +156,6 @@ void Enemy::updateMovement(QPointF playerPos)
     }
     }
 
-    // Wrap around map edges
     if (currentPos.x() > 1000)
         setPos(-1000, currentPos.y());
     else if (currentPos.x() < -1000)
@@ -180,7 +171,6 @@ void Enemy::takeDamage(int damage)
 {
     health -= damage;
 
-    // Visual feedback - flash white
     if (health > 0)
     {
         setBrush(Qt::white);
@@ -241,14 +231,9 @@ void Enemy::setTargetPosition(QPointF TargetPosition)
 
 void Enemy::idleUpdate()
 {
-    // Keep only very cheap state progression so large numbers of off-screen enemies
-    // don't cost much CPU. Timers advance slowly so behavior feels continuous when they
-    // come back into range. Avoid any QGraphics calls (setPos/setRotation).
     if (wanderTimer < INT_MAX - 1000) wanderTimer += 1;
     if (shootTimer < INT_MAX - 1000) shootTimer += 1;
 
-    // Occasionally change targetPos for wanderers but without moving them:
-    // This keeps behavior consistent without issuing setPos each frame.
     if (type == Wanderer && (wanderTimer % 600 == 0))
     {
         QRandomGenerator *rng = QRandomGenerator::global();
@@ -258,10 +243,8 @@ void Enemy::idleUpdate()
             );
     }
 
-    // For Shooters, keep shootTimer increasing so they will fire soon after re-activation.
     if (type == Shooter)
     {
-        // clamp shootTimer to values consistent with updateMovement's expectations
         if (shootTimer > 1000000) shootTimer = 1000000;
     }
 }

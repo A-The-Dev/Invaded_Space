@@ -15,11 +15,9 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
     collisionManager(nullptr), hud(nullptr), levelSystem(nullptr),
     arduino(nullptr), m_gameStarted(false), m_pauseMenu(nullptr)
 {
-    // Create scene with larger area for free movement
     scene = new QGraphicsScene(this);
     scene->setSceneRect(-1000, -1000, 2000, 2000);
     hud = new HUD(scene, this);
-    // Set space-themed background
     scene->setBackgroundBrush(QBrush(QColor(10, 10, 30)));
 
     setScene(scene);
@@ -28,24 +26,19 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
     setCacheMode(QGraphicsView::CacheBackground);
     setOptimizationFlag(QGraphicsView::DontAdjustForAntialiasing, true);
 
-    // Set view properties
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     resize(800, 600);
 
-    // Enable mouse tracking
     setMouseTracking(true);
 
-    // Create player at origin
     player = new Player();
     player->setPos(0, 0);
     scene->addItem(player);
 
-    // Provide player with pointers to the current enemy / boss lists so auto-targeting works.
     player->setEnemyLists(&enemies, &bosses);
 
     arduino = new ArduinoManager(this);
-    // attempt connection if desired (safe to leave)
     if (arduino->connectToArduino("COM3")) {
         qDebug() << "Connexion Arduino REUSSIE sur COM3";
         player->setUseJoystick(true);
@@ -54,8 +47,6 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
         player->setUseJoystick(false);
     }
 
-    // 1. Reçoit les données de l'Arduino et fait bouger/tirer le joueur
-        //connect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
     connect(arduino, &ArduinoManager::commandReceived, this, [this](double x, double y, bool tir, bool ulti, bool grenade, bool BossSpawn) {
         player->updateFromJoystick(x, y, tir, ulti, grenade);
         this->bossSpawnRequested = BossSpawn;
@@ -67,7 +58,6 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
     hud->updateGrenades(player->getGrenadeCount());
 
 
-    // Reçoit la balle créée par le joueur et l'ajoute à la liste de collision
     connect(player, &Player::bulletFired, this, [this](Bullet* b){
         scene->addItem(b);
         bullets.append(b);
@@ -78,17 +68,14 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
         {
             scene->addItem(g);
         });
-    // Initialize camera
     cameraTarget = player->pos();
-    cameraSmoothing = 0.1;  // Lower = smoother/slower, Higher = faster
+    cameraSmoothing = 0.1;
     centerOn(player);
 
-    // Initialize spawn timer counters
     spawnTimer = 0;
     enemySpawnTimer = 0;
     bossSpawnTimer = 0;
 
-    // Create collision manager
     collisionManager = new CollisionManager(this);
     connect(collisionManager, &CollisionManager::enemyDestroyed, this, &Game::onEnemyDestroyed);
     connect(collisionManager, &CollisionManager::playerHitEnemy, this, &Game::onPlayerHit);
@@ -96,31 +83,25 @@ Game::Game(QWidget *parent, bool startPaused) : QGraphicsView(parent),
 
 
 
-    // Connect player signals
     connect(player, &Player::died, this, &Game::onPlayerDied);
     connect(player, &Player::healthChanged, this, [this](int health, int maxHealth) {
         if (hud) hud->updateHealth(health, maxHealth);
     });
 
-    // Create HUD
-
     hud->updateHealth(player->getHealth(), player->getMaxHealth());
 
-    // Create level system
     levelSystem = new LevelSystem(this);
     connect(levelSystem, &LevelSystem::levelUp, this, &Game::onLevelUp);
     connect(levelSystem, &LevelSystem::xpChanged, hud, &HUD::updateXP);
     hud->updateLevel(levelSystem->getLevel());
     hud->updateXP(levelSystem->getCurrentXP(), levelSystem->getXPForNextLevel());
 
-    // Create pause menu
     m_pauseMenu = new Menu(this);
     m_pauseMenu->hide();
     connect(m_pauseMenu, &Menu::resumeGameRequested, this, &Game::onResumeGame);
     connect(m_pauseMenu, &Menu::fullscreenToggled, this, &Game::toggleFullscreen);
-    connect(m_pauseMenu, &Menu::volumeChanged, this, [](int value) { Q_UNUSED(value); /* implement audio volume change */ });
+    connect(m_pauseMenu, &Menu::volumeChanged, this, [](int value) { Q_UNUSED(value);});
 
-    // If not paused, start gameplay immediately, otherwise wait for explicit startGame() call.
     if (!startPaused) {
         startGame();
     }
@@ -130,28 +111,23 @@ void Game::startGame()
 {
     if (m_gameStarted) return;
     m_gameStarted = true;
-    
-    // Set property for external checks
+
     setProperty("gameStarted", true);
 
-    // Spawn initial space objects
     for (int i = 0; i < 50; ++i)
     {
         spawnSpaceObject();
     }
 
-    // Spawn initial enemies
     for (int i = 0; i < 6; ++i)
     {
         spawnEnemy();
     }
 
-    // Create timer for game loop and start it
     timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &Game::updateGame);
-    timer->start(16); // ~60 FPS
+    timer->start(16);
 
-    // Set window title
     setWindowTitle("Invaded Space - WASD to move, Click to shoot");
 }
 
@@ -160,11 +136,9 @@ void Game::spawnSpaceObject()
 {
     QRandomGenerator *rng = QRandomGenerator::global();
 
-    // Random position
     qreal x = rng->bounded(-1000, 1000);
     qreal y = rng->bounded(-1000, 1000);
 
-    // Random type (more stars than planets/asteroids)
     int typeRoll = rng->bounded(100);
     SpaceObject::ObjectType type;
 
@@ -195,7 +169,6 @@ void Game::spawnEnemy()
         playerPos.y() + qSin(angle) * distance
         );
 
-    // Random enemy type
     int typeRoll = rng->bounded(100);
     Enemy::EnemyType type;
 
@@ -231,7 +204,6 @@ void Game::spawnBoss()
         playerPos.y() + qSin(angle) * distance
         );
 
-    // Random boss type
     int typeRoll = rng->bounded(100);
     Boss::BossType type;
 
@@ -265,7 +237,6 @@ void Game::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
     {
-        // Use Player::shoot() so auto-aim is applied and rate limiting is respected.
         player->shoot();
     }
     else if(event->button() == Qt::RightButton)
@@ -276,7 +247,6 @@ void Game::mousePressEvent(QMouseEvent *event)
 
 void Game::keyPressEvent(QKeyEvent* event)
 {
-    // Prevent pause and ultimate if upgrade menu is open
     if (event->key() == Qt::Key_Escape) {
         if (m_gameStarted && !m_isPaused && !m_upgradeMenuOpen && m_pauseMenu && !m_pauseMenu->isPauseMenuVisible()) {
             onPauseMenuRequested();
@@ -288,7 +258,6 @@ void Game::keyPressEvent(QKeyEvent* event)
     player->keyPressEvent(event);
     if (event->key() == Qt::Key_F)
     {
-        // Prevent ultimate if upgrade menu is open
         if (!m_upgradeMenuOpen && player->tryUseUltimate()) {
             triggerScreenClear();
         }
@@ -305,29 +274,21 @@ void Game::triggerScreenClear()
     {
         Enemy* e = enemies.takeFirst();
 
-
         if (scene->views().first()->sceneRect().contains(e->pos()))
-        {
-
             onEnemyDestroyed(e);
-        } else
+        else
         {
-
             scene->removeItem(e);
             e->deleteLater();
         }
     }
 
 
-    for (Boss* b : bosses)
-    {
+    for (Boss* b : bosses) {
         b->takeDamage(100);
     }
-
-
     QPixmap ultImg("./resources/Léanuke.png");
     QGraphicsPixmapItem* flash = new QGraphicsPixmapItem(ultImg);
-
 
     flash->setOffset(-ultImg.width()/2, -ultImg.height()/2);
     flash->setPos(player->pos());
@@ -337,7 +298,6 @@ void Game::triggerScreenClear()
 
     scene->addItem(flash);
 
-    // Fade it out or just remove it
     QTimer::singleShot(150, [this, flash]() {
         scene->removeItem(flash);
         delete flash;
@@ -346,6 +306,7 @@ void Game::triggerScreenClear()
 	UltUsed = false;
     hud->updateUltimate(player->getUltimatePercentage());
 }
+
 void Game::keyReleaseEvent(QKeyEvent *event)
 {
     player->keyReleaseEvent(event);
@@ -354,8 +315,7 @@ void Game::keyReleaseEvent(QKeyEvent *event)
 void Game::onEnemyDestroyed(Enemy *enemy)
 {
     currentScore += 10;
-    // Spawn XP orb at enemy position
-    int xpValue = 20;  // Base XP value
+    int xpValue = 20;
     XPOrb *orb = new XPOrb(enemy->pos(), xpValue);
     scene->addItem(orb);
     xpOrbs.append(orb);
@@ -369,7 +329,7 @@ void Game::onEnemyDestroyed(Enemy *enemy)
     }
 	else if (UltUsed == false)
     {
-        player->gainUltimateCharge(5.0); //Un ultimate par 20 enemy
+        player->gainUltimateCharge(5.0);
         hud->updateUltimate(player->getUltimatePercentage());
     }
 
@@ -377,8 +337,7 @@ void Game::onEnemyDestroyed(Enemy *enemy)
 void Game::onBossDestroyed(Boss *boss)
 {
     currentScore += 100;
-    // Spawn XP orb at enemy position
-    int xpValue = 500;  // Base XP value
+    int xpValue = 500;
     XPOrb *orb = new XPOrb(boss->pos(), xpValue);
     scene->addItem(orb);
     xpOrbs.append(orb);
@@ -392,7 +351,7 @@ void Game::onBossDestroyed(Boss *boss)
     }
     else if(UltUsed == false)
     {
-        player->gainUltimateCharge(5.0); //Un ultimate par 20 enemy
+        player->gainUltimateCharge(5.0);
         hud->updateUltimate(player->getUltimatePercentage());
     }
 }
@@ -400,9 +359,7 @@ void Game::onBossDestroyed(Boss *boss)
 void Game::onPlayerHit(Enemy *enemy)
 {
     // Player already gets pushed back in collision manager
-    // Health is handled by player's takeDamage
 }
-
 
 void Game::onEnemyShoot(QPointF position, qreal angle,bool boss)
 {
@@ -432,7 +389,7 @@ void Game::onEnemyShoot(QPointF position, qreal angle,bool boss)
     }
     else
     {
-        Bullet *bullet = new Bullet(position, angle, false);  // false = enemy bullet
+        Bullet *bullet = new Bullet(position, angle, false);
         scene->addItem(bullet);
         bullets.append(bullet);
     }
@@ -444,7 +401,6 @@ void Game::onBossUltimate(QPointF position, qreal angle, bool isBoss) {
 
 
     if (senderBoss->getType() == Boss::Boss1) {
-        // 8-Way Burst
         for (int i = 0; i < 8; ++i) {
             Ultimate *u = new Ultimate(position, i * 45, false, nullptr, senderBoss, true);
             scene->addItem(u);
@@ -452,11 +408,10 @@ void Game::onBossUltimate(QPointF position, qreal angle, bool isBoss) {
         }
     }
     else if (senderBoss->getType() == Boss::Boss2) {
-        // The Wall: Calculate perpendicular angle in Radians
         qreal rad = (angle + 90) * M_PI / 180.0;
 
         for (int i = -2; i <= 2; ++i) {
-            qreal spacing = i * 60; // Increased spacing for visibility
+            qreal spacing = i * 60;
             QPointF wallPos = position + QPointF(qCos(rad) * spacing, qSin(rad) * spacing);
 
             Ultimate *u = new Ultimate(wallPos, angle, false, nullptr, senderBoss, true);
@@ -465,12 +420,10 @@ void Game::onBossUltimate(QPointF position, qreal angle, bool isBoss) {
         }
     }
     else if (senderBoss->getType() == Boss::Boss4) {
-        // The Giant Laser
         Ultimate *laser = new Ultimate(position, angle, false, nullptr, senderBoss, true);
         scene->addItem(laser);
         ultimates.append(laser);
 
-        // Laser is temporary: delete after 600ms
         QTimer::singleShot(600, this, [this, laser]() {
             if (ultimates.contains(laser)) {
                 ultimates.removeOne(laser);
@@ -490,7 +443,6 @@ void Game::onPlayerDied()
     lb->setEndgameMode(true);
     lb->refresh();
 
-    // Position leaderboard in center of the view (not scene coordinates)
     int lw = qBound(400, width() * 60 / 100, width() - 40);
     int lh = qBound(300, height() * 70 / 100, height() - 40);
     int x = (width() - lw) / 2;
@@ -502,15 +454,12 @@ void Game::onPlayerDied()
     lb->raise();
     lb->setFocus();
 
-    // Connect endgame actions
     connect(lb, &Leaderboard::restartRequested, this, [this, lb]() {
         lb->deleteLater();
-        
-        // Reset game state
+
         m_isPaused = false;
         m_gameStarted = false;
 
-        // Clear all game entities
         qDeleteAll(enemies);
         enemies.clear();
         qDeleteAll(bosses);
@@ -524,30 +473,24 @@ void Game::onPlayerDied()
         qDeleteAll(ultimates);
         ultimates.clear();
 
-        // Reset level and score BEFORE resetting player
         levelSystem->reset();
         currentScore = 0;
         lastBossLevel = 0;
 
-        // Reset player to default state
         player->resetToDefault();
         player->setPos(0, 0);
 
-        // Reset spawn timers
         spawnTimer = 0;
         enemySpawnTimer = 0;
         bossSpawnTimer = 0;
 
-        // Reset camera
         cameraTarget = player->pos();
 
-        // Update HUD with fresh values
         hud->updateLevel(levelSystem->getLevel());
         hud->updateHealth(player->getHealth(), player->getMaxHealth());
         hud->updateXP(levelSystem->getCurrentXP(), levelSystem->getXPForNextLevel());
         hud->updateUltimate(player->getUltimatePercentage());
 
-        // Restart the game
         startGame();
     });
 
@@ -556,7 +499,7 @@ void Game::onPlayerDied()
         qApp->quit();
     });
 
-    m_isPaused = true; // Prevent pause menu from showing
+    m_isPaused = true;
 }
 
 void Game::onLevelUp(int level) {
@@ -564,52 +507,41 @@ void Game::onLevelUp(int level) {
 
     if (player) player->resetInputStates();
 
-    // On déconnecte le joystick du joueur 
     disconnect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
 
-    // Créer et afficher le menu
     UpgradeMenu* menu = new UpgradeMenu(this);
 
-    // Mark upgrade menu as open
     m_upgradeMenuOpen = true;
 
-    // On connecte la manette au menu AVANT qu'il ne s'affiche
     connect(arduino, &ArduinoManager::commandReceived, menu, &UpgradeMenu::navigateWithJoystick);
 
-    // Connecte le choix du menu aux actions du joueur
     connect(menu, &UpgradeMenu::upgradeSelected, [this](int choice) {
-        if (choice == 0) { // Vitesse
-            qreal increment = 0.4; // smaller, reasonable increment
+        if (choice == 0) {
+            qreal increment = 0.4;
             player->setSpeed(player->getSpeed() + increment);
             qDebug() << "Applied speed upgrade, new speed =" << player->getSpeed();
         }
-        else if (choice == 1) { // Dégâts
+        else if (choice == 1) {
             player->setAttackDamage(player->getAttackDamage() + 1);
             qDebug() << "Applied damage upgrade, new damage =" << player->getAttackDamage();
         }
-        else if (choice == 2) { // Vie
+        else if (choice == 2) {
             player->refillHealth();
             player->increaseMaxHealth(2);
             qDebug() << "Applied health upgrade, new health =" << player->getHealth();
         }
         });
 
-    // Affiche le menu 
     menu->exec();
 
-    // Mark upgrade menu as closed
     m_upgradeMenuOpen = false;
 
-    // On déconnecte la manette du menu
     disconnect(arduino, &ArduinoManager::commandReceived, menu, &UpgradeMenu::navigateWithJoystick);
 
-    // On redonne le contrôle du joystick au joueur
     connect(arduino, &ArduinoManager::commandReceived, player, &Player::updateFromJoystick);
 
-    // Relance le jeu
     timer->start();
 
-    // Mise à jour du HUD
     hud->updateLevel(level);
     setWindowTitle(QString("Invaded Space - Level %1").arg(level));
 }
@@ -631,31 +563,25 @@ void Game::onXPOrbCollected(XPOrb *orb)
 
 void Game::updateGame()
 {
-    // Update player
     player->update();
-    // Smooth camera follow
     QPointF playerPos = player->pos();
     cameraTarget.setX(cameraTarget.x() + (playerPos.x() - cameraTarget.x()) * cameraSmoothing);
     cameraTarget.setY(cameraTarget.y() + (playerPos.y() - cameraTarget.y()) * cameraSmoothing);
     centerOn(cameraTarget);
 
-    // Update HUD position
     hud->updatePosition(cameraTarget, player->pos());
 
-    // Update space objects and remove expired ones
     QList<SpaceObject*> objectsToRemove;
     for (int i = 0; i < spaceObjects.size(); ++i)
     {
         spaceObjects[i]->update();
 
-        // Check if lifetime expired
         if (spaceObjects[i]->property("lifetime").toReal() <= 0)
         {
             objectsToRemove.append(spaceObjects[i]);
         }
     }
 
-    // Remove expired objects
     for (int i = 0; i < objectsToRemove.size(); ++i)
     {
         spaceObjects.removeOne(objectsToRemove[i]);
@@ -663,36 +589,33 @@ void Game::updateGame()
         delete objectsToRemove[i];
     }
 
-    // Spawn new objects periodically
     spawnTimer++;
-    if (spawnTimer >= 120)  // Spawn every 2 seconds (at 60fps)
+    if (spawnTimer >= 120)
     {
         spawnTimer = 0;
         spawnSpaceObject();
     }
 
-    // Spawn enemies periodically
     enemySpawnTimer++;
-    if (enemySpawnTimer >= 60)  // Spawn every second
+    if (enemySpawnTimer >= 60)
     {
-        if (enemies.size() < 5 * levelSystem->getLevel())  // Cap at 10 enemies * current level
+        if (enemies.size() < 5 * levelSystem->getLevel())
         {
             spawnEnemy();
         }
     }
 
 
-    // Only spawn if we haven't spawned one for THIS level yet
     if (bossSpawnRequested)
     {
         if (levelSystem->getLevel() > 15 && bosses.size() < 2)
         {
-            spawnBoss(); // Lock spawning for this level
+            spawnBoss();
             bossSpawnRequested = false;
         }
         else if(levelSystem->getLevel() < 15 && bosses.size() < 1)
         {
-            spawnBoss(); // Lock spawning for this level
+            spawnBoss();
             bossSpawnRequested = false;
 		}
 
@@ -701,7 +624,6 @@ void Game::updateGame()
     {
         ultimates[i]->move();
 
-        // Cleanup if they go too far (except for the static Boss 4 laser)
         if (ultimates[i]->getSpeed() > 0 && collisionManager->isOffScreen(ultimates[i], cameraTarget, 2000, 2000)) {
             Ultimate* u = ultimates.takeAt(i);
             scene->removeItem(u);
@@ -709,8 +631,7 @@ void Game::updateGame()
         }
     }
 
-    // Update enemies with LOD: full update only when near camera; idleUpdate otherwise.
-    const qreal enemyActiveRadius = 600.0; // tuneable radius around cameraTarget for full updates
+    const qreal enemyActiveRadius = 600.0;
     const qreal activeRadius2 = enemyActiveRadius * enemyActiveRadius;
     for (int i = 0; i < enemies.size(); ++i)
     {
@@ -727,7 +648,7 @@ void Game::updateGame()
             e->idleUpdate();
         }
     }
-    // Update bosses: fewer bosses expected so keep full updates but still skip if extremely far
+
     const qreal bossActiveRadius = 1200.0;
     const qreal bossActiveRadius2 = bossActiveRadius * bossActiveRadius;
     for (int i = 0; i < bosses.size(); ++i)
@@ -739,8 +660,9 @@ void Game::updateGame()
         if (dist2 <= bossActiveRadius2)
             b->updateMovement(playerPos);
         else
-            b->idleUpdate(); // if Boss has no idleUpdate, this is a no-op; add similar method if needed
+            b->idleUpdate();
     }
+
     // Update XP orbs
     for (int i = 0; i < xpOrbs.size(); ++i)
     {
@@ -753,7 +675,6 @@ void Game::updateGame()
     const qreal clusterRadius = 300.0;
     const qreal combineDistance = 12.0;
 
-    // Phase 1: detect clusters and start merging (one cluster per frame)
     bool startedClusterThisFrame = false;
     for (int i = 0; i < xpOrbs.size() && !startedClusterThisFrame; ++i)
     {
@@ -795,7 +716,6 @@ void Game::updateGame()
         }
     }
 
-    // Phase 2: when enough orbs reach centroid, combine a bounded number (15-35)
     QMap<QPair<int,int>, QList<XPOrb*>> mergingGroups;
     for (XPOrb* o : xpOrbs)
     {
@@ -861,7 +781,6 @@ void Game::updateGame()
                 xpOrbs.append(combined);
             }
 
-            // reset merging flag on remaining orbs in this group so they don't get stuck
             for (XPOrb* o : group)
             {
                 if (!toRemove.contains(o))
@@ -891,7 +810,6 @@ void Game::updateGame()
         if (!spaceObjects[i]->hasCollision())
             continue;
 
-        // Check player collision
         if (player->collidesWithItem(spaceObjects[i]))
         {
             QPointF playerPos = player->pos();
@@ -900,7 +818,6 @@ void Game::updateGame()
             player->pushBack(pushDir, 5.0);
         }
 
-        // Check enemy collisions
         for (int j = 0; j < enemies.size(); ++j)
         {
             if (enemies[j]->collidesWithItem(spaceObjects[i]))
@@ -922,10 +839,9 @@ void Game::updateGame()
         }
     }
 
-    // Check collisions
     collisionManager->checkCollisions(player, bullets, enemies, bosses, ultimates);
 
-    // Update all bullets (use index-based loop to avoid detachment warning)
+    // Update all bullets
     QList<Bullet*> bulletsToRemove;
     int viewW = viewport() ? viewport()->width() : 800;
     int viewH = viewport() ? viewport()->height() : 600;
@@ -934,7 +850,6 @@ void Game::updateGame()
     {
         bullets[i]->move();
         
-        // Check if bullet is off screen
         if (collisionManager->isOffScreen(bullets[i], cameraTarget, viewW, viewH))
         {
             bulletsToRemove.append(bullets[i]);
@@ -947,18 +862,15 @@ void Game::updateGame()
         g->move();
 
         if (g->getIsExploding()) {
-            // Area of Effect (AoE) Damage Logic
             for (int j = enemies.size() - 1; j >= 0; --j) {
                 Enemy* e = enemies[j];
-                // Check distance between grenade center and enemy
                 qreal dist = QLineF(g->pos(), e->pos()).length();
 
-                if (dist < g->rect().width() / 2) { // Inside explosion radius
-                    onEnemyDestroyed(e); // Or e->takeDamage(40) if enemies have HP
+                if (dist < g->rect().width() / 2) {
+                    onEnemyDestroyed(e);
                 }
             }
 
-            // Also check Bosses
             for (Boss* b : bosses) {
                 if (QLineF(g->pos(), b->pos()).length() < g->rect().width() / 2) {
                     b->takeDamage(40);
@@ -966,8 +878,6 @@ void Game::updateGame()
             }
         }
 
-        // Cleanup: If the grenade object was marked for deletion by its own timer
-        // Note: It's safer to check g->scene() == nullptr or a custom flag
         if (g->isFinished()) {
             player->removeActiveGrenade(i);
             scene->removeItem(g);
@@ -982,36 +892,22 @@ void Game::updateGame()
         scene->removeItem(bulletsToRemove[i]);
         delete bulletsToRemove[i];
     }
-    // On envoie les données environ 5 fois par seconde (tous les 12 cycles de 16ms)
+
     static int sendCounter = 0;
     sendCounter++;
 
     if (sendCounter >= 12) {
-        //int currentLevel = levelSystem->getLevel();
-
-        // Logique pour le chiffre du boss (1 à 4)
-        // Ici, tu peux mettre ta propre logique. Exemple :
-        // 1 = Pas de boss, 2 = Petit boss, 3 = Gros boss, 4 = Boss final
         int bossStatus = 1;
-        //if (enemies.size() > 15) bossStatus = 2; // Exemple simple
-
-        //arduino->sendGameState(currentLevel, bossStatus);
         sendCounter = 0;
     }
 
-    //arduino->sendGameState(3,3, true );
     arduino->sendGameState(levelSystem->getLevel(), this->currentBossID, player->getIsUltimateReady());
-    player->processMovement(); // On bouge le joueur à chaque "tick" du timer
-    //player->updateFromJoystick(0.0, 0.0, true);
-    // LIGNE DE TEST TEMPORAIRE :
-    // On simule un mouvement vers la droite (0 rad) à pleine vitesse et un tir
-    // player->updateFromJoystick(0.0, 1.0, false);
+    player->processMovement();
 }
 
 void Game::resizeEvent(QResizeEvent *event)
 {
     Q_UNUSED(event);
-    // Keep camera centered and update HUD when the view size changes
     centerOn(cameraTarget);
     if (hud) hud->updatePosition(cameraTarget, player->pos());
     QGraphicsView::resizeEvent(event);
@@ -1021,14 +917,12 @@ void Game::toggleFullscreen()
 {
     if (!isFullscreen)
     {
-        // enter fullscreen: save previous geometry to restore later
         previousGeometry = geometry();
         showFullScreen();
         isFullscreen = true;
     }
     else
     {
-        // exit fullscreen: restore previous windowed geometry
         showNormal();
         if (!previousGeometry.isNull())
             setGeometry(previousGeometry);

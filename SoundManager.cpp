@@ -28,7 +28,6 @@ SoundManager::~SoundManager()
 
 void SoundManager::loadSounds()
 {
-    // Define sound file paths
     QMap<SoundType, QString> soundPaths;
     soundPaths[PlayerShoot] = "shoot.wav";
     soundPaths[PlayerHurt] = "hurt.wav";
@@ -45,11 +44,9 @@ void SoundManager::loadSounds()
         
         QString filePath = QString("./resources/%1").arg(it.value());
         
-        // Convert to absolute path
         QFileInfo fileInfo(filePath);
         if (fileInfo.exists()) {
             QString absolutePath = fileInfo.absoluteFilePath();
-            // Convert to proper file URL
             QUrl fileUrl = QUrl::fromLocalFile(absolutePath);
             effect->setSource(fileUrl);
             
@@ -81,8 +78,7 @@ void SoundManager::setVolume(int volumePercent)
 {
     // Convert 0-100 to 0.0-1.0
     m_volume = qBound(0.0, volumePercent / 100.0, 1.0);
-    
-    // Update volume for all loaded sounds
+
     for (QSoundEffect* effect : m_sounds) {
         if (effect) {
             effect->setVolume(m_volume);

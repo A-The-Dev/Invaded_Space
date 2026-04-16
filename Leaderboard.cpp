@@ -41,7 +41,7 @@ Leaderboard::Leaderboard(QWidget* parent) : QWidget(parent), m_scroll(nullptr),
 
     m_scroll->viewport()->installEventFilter(this);
 
-    // Endgame button container (initially hidden)
+    // Endgame button
     m_buttonContainer = new QWidget(this);
     m_buttonLayout = new QVBoxLayout(m_buttonContainer);
     m_buttonLayout->setContentsMargins(0,8,0,0);
@@ -116,12 +116,11 @@ QFrame* Leaderboard::createEntryWidget(const QJsonObject& obj) {
         QString colorHex = obj["color"].toString();
         QColor shipColor;
         
-        // Parse hex color (supports #RRGGBB or #RRGGBBAA)
+        // Parse hex color
         if (colorHex.startsWith("#") && colorHex.length() >= 7) {
-            colorHex = colorHex.mid(1); // Remove the '#'
+            colorHex = colorHex.mid(1);
             
             if (colorHex.length() == 6) {
-                // RRGGBB format - add default alpha
                 colorHex += "B4";
             }
             
@@ -138,7 +137,7 @@ QFrame* Leaderboard::createEntryWidget(const QJsonObject& obj) {
             }
         }
         
-        // Apply color tint to the ship sprite if valid color
+        // Apply color to ship sprite
         QPixmap coloredShip = playerImg;
         if (shipColor.isValid() && shipColor.alpha() > 0) {
             QPixmap tinted(playerImg.size());
@@ -184,7 +183,6 @@ void Leaderboard::updateFontSizes()
     int w = width();
     if (w <= 0) return;
 
-    // Scale title font
     int titleSize = qBound(14, w / 20, 28);
     QFont titleFont;
     titleFont.setPointSize(titleSize);
@@ -193,14 +191,13 @@ void Leaderboard::updateFontSizes()
     QLabel* title = findChild<QLabel*>();
     if (title) title->setFont(titleFont);
 
-    // Scale entry text
     int statsFontSize = qBound(9, w / 35, 14);
 
     for (QFrame* frame : m_entries) {
         auto labels = frame->findChildren<QLabel*>();
         for (int i = 0; i < labels.size(); ++i) {
             QLabel* lbl = labels[i];
-            if (i == 0) continue; // Skip icon label
+            if (i == 0) continue;
             
             QFont f = lbl->font();
             f.setPointSize(statsFontSize);
@@ -208,7 +205,6 @@ void Leaderboard::updateFontSizes()
         }
     }
 
-    // Scale buttons
     int btnFontSize = qBound(10, w / 40, 12);
     if (m_restartButton) {
         QFont f = m_restartButton->font();
@@ -229,7 +225,6 @@ void Leaderboard::updateFontSizes()
 void Leaderboard::updateSelectionUI()
 {
     if (m_isEndgameMode) {
-        // Highlight buttons in endgame mode
         if (m_selectedIndex == 0 && m_restartButton) {
             m_restartButton->setStyleSheet(
                 "QPushButton { color: white; background: rgba(30,30,50,200); border-radius:6px; padding: 10px; font-weight: bold; outline: 2px solid rgba(200,200,255,0.18); }"
@@ -252,7 +247,7 @@ void Leaderboard::updateSelectionUI()
         return;
     }
 
-    // Normal leaderboard mode: highlight entries
+    // Normal leaderboard mode
     for (int i = 0; i < m_entries.size(); ++i) {
         QFrame* f = m_entries[i];
         if (!f) continue;

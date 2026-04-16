@@ -2,7 +2,6 @@
 #include <QGraphicsScene>
 #include <QtMath>
 
-// small helper: quick check using approximate radii to avoid expensive shape tests
 static bool approxNearby(QGraphicsItem *a, QGraphicsItem *b, qreal extra = 4.0)
 {
     QPointF pa = a->pos();
@@ -52,7 +51,7 @@ void CollisionManager::checkCollisions(Player *player, QList<Bullet*> &bullets,
 
         bool bulletRemoved = false;
 
-        // Check collision with enemies (broad-phase approxNearby first)
+        // Check collision with enemies
         for (int j = 0; j < enemies.size(); ++j)
         {
             Enemy* e = enemies[j];
