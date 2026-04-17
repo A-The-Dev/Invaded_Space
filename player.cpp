@@ -184,7 +184,7 @@ void Player::takeDamage(int damage)
 
     SoundManager::instance()->playSound(SoundManager::PlayerHurt);
 
-    invincibilityFrames = 20;
+    invincibilityFrames = 10;
 
     if (health <= 0)
     {
@@ -487,6 +487,8 @@ void Player::launchUltimate() {
     QPointF spawnPos = this->scenePos();
 
     Ultimate* myUltimate = new Ultimate(spawnPos, this->rotation(), true, this, nullptr, false);
+
+    SoundManager::instance()->playSound(SoundManager::PlayerUltimate);
 
     QGraphicsScene* currentScene = this->scene();
     if (currentScene) {

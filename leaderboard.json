@@ -24,22 +24,6 @@
         "score": 20030
     },
     {
-        "atk": 2,
-        "color": "#55FFFFB4",
-        "hp": 20,
-        "lvl": 4,
-        "name": "Player",
-        "score": 410
-    },
-    {
-        "atk": 2,
-        "color": "#FF6464B4",
-        "hp": 20,
-        "lvl": 3,
-        "name": "Player",
-        "score": 130
-    },
-    {
         "atk": 27,
         "color": "#55AA00B4",
         "hp": 100,
@@ -48,35 +32,299 @@
         "score": 170250
     },
     {
-        "atk": 2,
-        "color": "#005500B4",
+        "atk": 28,
+        "color": "#000000B4",
+        "hp": 60,
+        "lvl": 46,
+        "name": "Paslefroid",
+        "score": 33470
+    },
+    {
+        "atk": 5,
+        "color": "#F895FFB4",
+        "hp": 24,
+        "lvl": 9,
+        "name": "Sam",
+        "score": 1430
+    },
+    {
+        "atk": 45,
+        "color": "#FF6464B4",
+        "hp": 82,
+        "lvl": 119,
+        "name": "Éman",
+        "score": 173890
+    },
+    {
+        "atk": 3,
+        "color": "#A71AFFB4",
+        "hp": 24,
+        "lvl": 9,
+        "name": "rosie",
+        "score": 1410
+    },
+    {
+        "atk": 7,
+        "color": "#CD59FFB4",
+        "hp": 28,
+        "lvl": 11,
+        "name": "cartel",
+        "score": 2840
+    },
+    {
+        "atk": 12,
+        "color": "#5A0C0DB4",
         "hp": 20,
-        "lvl": 2,
-        "name": "Jean Guy",
-        "score": 50
+        "lvl": 13,
+        "name": "Felix",
+        "score": 3740
+    },
+    {
+        "atk": 4,
+        "color": "#FF0004B4",
+        "hp": 20,
+        "lvl": 5,
+        "name": "Me",
+        "score": 700
+    },
+    {
+        "atk": 3,
+        "color": "#00AA00B4",
+        "hp": 24,
+        "lvl": 6,
+        "name": "Noah",
+        "score": 1130
+    },
+    {
+        "atk": 3,
+        "color": "#EB14FFB4",
+        "hp": 22,
+        "lvl": 6,
+        "name": "Mr auxiliaire",
+        "score": 570
     },
     {
         "atk": 1,
-        "color": "#5555FFB4",
-        "hp": 20,
-        "lvl": 1,
-        "name": "Player",
-        "score": 0
+        "color": "#00FF00B4",
+        "hp": 22,
+        "lvl": 5,
+        "name": "Laurence",
+        "score": 450
+    },
+    {
+        "atk": 3,
+        "color": "#00FFFFB4",
+        "hp": 22,
+        "lvl": 5,
+        "name": "elisha",
+        "score": 510
     },
     {
         "atk": 2,
-        "color": "#AA007FB4",
+        "color": "#FF6464B4",
         "hp": 22,
-        "lvl": 4,
-        "name": "Rambo",
-        "score": 170
+        "lvl": 5,
+        "name": "domingo",
+        "score": 490
+    },
+    {
+        "atk": 3,
+        "color": "#FF6464B4",
+        "hp": 22,
+        "lvl": 5,
+        "name": "domingo",
+        "score": 540
+    },
+    {
+        "atk": 44,
+        "color": "#FFFFFFB4",
+        "hp": 66,
+        "lvl": 61,
+        "name": "67",
+        "score": 53050
+    },
+    {
+        "atk": 3,
+        "color": "#115537B4",
+        "hp": 22,
+        "lvl": 5,
+        "name": "Uber",
+        "score": 470
+    },
+    {
+        "atk": 4,
+        "color": "#55FF00DC",
+        "hp": 24,
+        "lvl": 7,
+        "name": "mathieu",
+        "score": 880
     },
     {
         "atk": 1,
         "color": "#FF6464B4",
         "hp": 20,
-        "lvl": 1,
-        "name": "samsam",
-        "score": 10
+        "lvl": 5,
+        "name": "dani",
+        "score": 530
+    },
+    {
+        "atk": 3,
+        "color": "#AAAAFFB4",
+        "hp": 30,
+        "lvl": 10,
+        "name": "Lauralie",
+        "score": 1750
+    },
+    {
+        "atk": 3,
+        "color": "#FF6464B4",
+        "hp": 22,
+        "lvl": 6,
+        "name": "zeze",
+        "score": 740
+    },
+    {
+        "atk": 3,
+        "color": "#FF6464B4",
+        "hp": 24,
+        "lvl": 8,
+        "name": "zeze",
+        "score": 910
+    },
+    {
+        "atk": 3,
+        "color": "#39FF2BB4",
+        "hp": 32,
+        "lvl": 9,
+        "name": "willibob34",
+        "score": 1810
+    },
+    {
+        "atk": 2,
+        "color": "#FF6464B4",
+        "hp": 22,
+        "lvl": 5,
+        "name": "barbara",
+        "score": 590
+    },
+    {
+        "atk": 1,
+        "color": "#0055FFB4",
+        "hp": 22,
+        "lvl": 3,
+        "name": "ghhghfgdh",
+        "score": 110
+    },
+    {
+        "atk": 1,
+        "color": "#FF6464B4",
+        "hp": 22,
+        "lvl": 4,
+        "name": "marylou",
+        "score": 340
+    },
+    {
+        "atk": 4,
+        "color": "#FF5500B4",
+        "hp": 32,
+        "lvl": 10,
+        "name": "Summer",
+        "score": 1060
+    },
+    {
+        "atk": 3,
+        "color": "#AA00FFB4",
+        "hp": 22,
+        "lvl": 4,
+        "name": "Audrey",
+        "score": 530
+    },
+    {
+        "atk": 13,
+        "color": "#555500B4",
+        "hp": 20,
+        "lvl": 18,
+        "name": "paslefroid",
+        "score": 5730
+    },
+    {
+        "atk": 1,
+        "color": "#FFFFFFB4",
+        "hp": 30,
+        "lvl": 6,
+        "name": "Geg",
+        "score": 650
+    },
+    {
+        "atk": 4,
+        "color": "#EF0CFFB4",
+        "hp": 34,
+        "lvl": 13,
+        "name": "un petit nomé",
+        "score": 2260
+    },
+    {
+        "atk": 3,
+        "color": "#FF00FFB4",
+        "hp": 20,
+        "lvl": 3,
+        "name": "Birdy",
+        "score": 220
+    },
+    {
+        "atk": 2,
+        "color": "#FF00FFB4",
+        "hp": 24,
+        "lvl": 6,
+        "name": "Birdy",
+        "score": 740
+    },
+    {
+        "atk": 1,
+        "color": "#00AA00B4",
+        "hp": 24,
+        "lvl": 4,
+        "name": "Masuel",
+        "score": 450
+    },
+    {
+        "atk": 2,
+        "color": "#00AA00B4",
+        "hp": 28,
+        "lvl": 12,
+        "name": "Masuel",
+        "score": 3130
+    },
+    {
+        "atk": 11,
+        "color": "#AA0000B4",
+        "hp": 56,
+        "lvl": 39,
+        "name": "Remy",
+        "score": 19250
+    },
+    {
+        "atk": 51,
+        "color": "#4BFF78B4",
+        "hp": 136,
+        "lvl": 129,
+        "name": "TX",
+        "score": 213570
+    },
+    {
+        "atk": 2,
+        "color": "#FF6464B4",
+        "hp": 22,
+        "lvl": 10,
+        "name": "popo",
+        "score": 3110
+    },
+    {
+        "atk": 12,
+        "color": "#FFFFFFB4",
+        "hp": 20,
+        "lvl": 12,
+        "name": "67",
+        "score": 3330
     }
 ]

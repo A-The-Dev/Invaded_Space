@@ -68,7 +68,7 @@ Boss::Boss(BossType type, QPointF startPos, QGraphicsItem *parent)
         sprite = sprite.transformed(t, Qt::SmoothTransformation);
 
 
-        setHealth(1000);
+        setHealth(600);
         setSpeed(1.0);
         break;
     }

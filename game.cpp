@@ -534,7 +534,7 @@ void Game::onLevelUp(int level) {
             qDebug() << "Applied damage upgrade, new damage =" << player->getAttackDamage();
         }
         else if (choice == 2) {
-            player->refillHealth();
+            //player->refillHealth();
             player->increaseMaxHealth(2);
             qDebug() << "Applied health upgrade, new health =" << player->getHealth();
         }
@@ -616,7 +616,7 @@ void Game::updateGame()
 
     if (bossSpawnRequested)
     {
-        if (levelSystem->getLevel() > 2) {
+        if (levelSystem->getLevel() > 3) {
             if (levelSystem->getLevel() > 15 && bosses.size() < 2)
             {
                 spawnBoss();
